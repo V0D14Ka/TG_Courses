@@ -21,7 +21,8 @@ class BotDB:
         self.base.execute("CREATE TABLE IF NOT EXISTS administrators("
                           "id INTEGER NOT NULL PRIMARY KEY,"
                           "full_name TEXT,"
-                          "password TEXT)")
+                          "password TEXT,"
+                          "is_active BOOLEAN DEFAULT (False))")
 
         self.base.execute("CREATE TABLE IF NOT EXISTS courses("
                           "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
@@ -36,15 +37,34 @@ class BotDB:
         self.base.commit()
 
     def reg_user(self, user_id):
-        self.cur.execute("INSERT INTO `user` (`user_id`) VALUES (?)", (user_id,))
+        self.cur.execute("INSERT INTO `users` (`id`) VALUES (?)", (user_id,))
 
     def get_user_id(self, user_id):
-        result = self.cur.execute("SELECT `id` FROM `user` WHERE `user_id` = ?", (user_id,))
+        result = self.cur.execute("SELECT `id` FROM `users` WHERE `id` = ?", (user_id,))
         return result.fetchone()[0]
 
     def is_user_exist(self, user_id):
-        result = self.cur.execute("SELECT * FROM `user` WHERE `user_id` = ?", (user_id,))
+        result = self.cur.execute("SELECT * FROM `users` WHERE `id` = ?", (user_id,))
         return bool(len(result.fetchall()))
+
+    def is_admin_exist(self, user_id):
+        result = self.cur.execute("SELECT * FROM `administrators` WHERE `id` = ?", (user_id,))
+        return bool(len(result.fetchall()))
+
+    def is_admin_active(self, user_id):
+        result = self.cur.execute("SELECT * FROM `administrators` WHERE `id` = ?", (user_id,))
+        return result.fetchone()[3]
+
+    def make_admin_active(self, user_id):
+        self.cur.execute("UPDATE administrators SET is_active = TRUE WHERE id = ?", (user_id,))
+        self.save()
+        return True
+
+    def check_admin_password(self, user_id, password):
+        result = self.cur.execute("SELECT * FROM `administrators` WHERE `id` = ?", (user_id,))
+        if result.fetchone()[2] == password:
+            return True
+        return False
 
     def save(self):
         return self.base.commit()
