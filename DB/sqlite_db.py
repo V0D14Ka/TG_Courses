@@ -47,6 +47,14 @@ class BotDB:
         result = self.cur.execute("SELECT * FROM `users` WHERE `id` = ?", (user_id,))
         return bool(len(result.fetchall()))
 
+    def get_courses(self, status):
+        result = self.cur.execute("SELECT * FROM `courses` WHERE `status` = ?", (status,))
+        return result
+
+    def get_course(self, item_id):
+        result = self.cur.execute("SELECT * FROM `courses` WHERE `id` = ?", (item_id,))
+        return result.fetchone()
+
     def is_admin_exist(self, user_id):
         result = self.cur.execute("SELECT * FROM `administrators` WHERE `id` = ?", (user_id,))
         return bool(len(result.fetchall()))
