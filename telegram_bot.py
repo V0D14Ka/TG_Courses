@@ -1,10 +1,9 @@
 from create_bot import dp
 from aiogram.utils import executor
-from handlers import admin, student, general
+from handlers import start, menu
 
-general.register_handlers_general(dp)
-# extrapart.register_handlers_client_extra(dp)
-# other.register_handlers_other(dp)
+start.register_handlers_start(dp)
+menu.register_handlers_menu(dp)
 
 
 async def on_startup(_):
