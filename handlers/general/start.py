@@ -52,7 +52,10 @@ async def check_password(message: types.Message, state: FSMContext):
         db.make_admin_active(message.from_user.id)
     answer = "Успешно, используйте /menu" if res else "Неверный пароль"
 
-    await message.delete()
+    try:
+        await message.delete()
+    except MessageCantBeDeleted:
+        pass
     await bot.send_message(message.from_user.id, text=answer)
     await state.finish()
 

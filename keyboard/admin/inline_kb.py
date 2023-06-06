@@ -9,27 +9,27 @@ class InlineAdmin:
     def __init__(self, db):
         self.db = db
 
-    def make_callback_data(self, is_admin, level, category=0, item_id=0):
+    def make_callback_data(self, level, is_admin=1, category=0, item_id=0):
         return self.menu_cd.new(is_admin=is_admin, level=level, category=category, item_id=item_id)
 
-    async def menu_keyboard(self, is_admin):
+    async def menu_keyboard(self):
         current_level = 0
         markup = InlineKeyboardMarkup()
 
         markup.insert(
-            InlineKeyboardButton(text="Открытые курсы", callback_data=self.make_callback_data(is_admin=is_admin,
+            InlineKeyboardButton(text="Открытые курсы", callback_data=self.make_callback_data(
                                                                                               level=current_level + 1,
                                                                                               category=1))
         )
 
         markup.insert(
-            InlineKeyboardButton(text="Закрытые курсы", callback_data=self.make_callback_data(is_admin=is_admin,
+            InlineKeyboardButton(text="Закрытые курсы", callback_data=self.make_callback_data(
                                                                                               level=current_level + 1,
                                                                                               category=2))
         )
         return markup
 
-    async def category_keyboard(self, is_admin, category):
+    async def category_keyboard(self, category):
         current_level = 1
         markup = InlineKeyboardMarkup(row_width=1)
         print(category)
@@ -37,7 +37,7 @@ class InlineAdmin:
         for course in courses:
             print(course[1])
             button_text = f"{course[1]}"
-            callback_data = self.make_callback_data(is_admin=is_admin, category=category, level=current_level + 1,
+            callback_data = self.make_callback_data(category=category, level=current_level + 1,
                                                     item_id=course[0])
 
             markup.insert(
@@ -47,13 +47,13 @@ class InlineAdmin:
         markup.row(
             InlineKeyboardButton(
                 text="Назад",
-                callback_data=self.make_callback_data(level=current_level - 1, is_admin=is_admin)
+                callback_data=self.make_callback_data(level=current_level - 1)
             )
         )
 
         return markup
 
-    async def item_info(self, is_admin, category, item_id):
+    async def item_info(self, category, item_id):
         current_level = 2
         markup = InlineKeyboardMarkup(row_width=1)
         item = self.db.get_course(item_id)
@@ -61,13 +61,13 @@ class InlineAdmin:
         markup.row(
             InlineKeyboardButton(  # TODO пока заглушка
                 text="Редактировать",
-                callback_data=self.make_callback_data(level=current_level - 1, is_admin=is_admin, category=category)
+                callback_data=self.make_callback_data(level=current_level - 1, category=category)
             )
         )
         markup.row(
             InlineKeyboardButton(  # TODO пока заглушка
                 text="Назад",
-                callback_data=self.make_callback_data(level=current_level - 1, is_admin=is_admin, category=category)
+                callback_data=self.make_callback_data(level=current_level - 1, category=category)
             )
         )
 
