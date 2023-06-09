@@ -9,8 +9,8 @@ from keyboard.student.inline_kb import InlineStudent
 
 db = BotDB('sqlite.db')
 
-inline_admin = InlineAdmin(db)
-inline_student = InlineStudent(db)
+inline_admin = InlineAdmin()
+inline_student = InlineStudent()
 storage = MemoryStorage()
 
 load_dotenv()

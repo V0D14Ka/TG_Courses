@@ -6,9 +6,6 @@ class InlineStudent:
     menu_cd = CallbackData("show_menu", "level", "category", "item_id")
     sub_course_cd = CallbackData("sub", "item_id")
 
-    def __init__(self, db):
-        self.db = db
-
     def make_callback_data(self, level, category=0, item_id=0):
         return self.menu_cd.new(level=level, category=category, item_id=item_id)
 
@@ -32,14 +29,13 @@ class InlineStudent:
 
         return markup
 
-    async def category_keyboard(self, category):
+    async def category_keyboard(self, category, courses):
         current_level = 1
         markup = InlineKeyboardMarkup(row_width=1)
         print(category)
 
         match category:
             case "1":
-                courses = self.db.get_courses(category)
                 for course in courses:
                     print(course[1])
                     button_text = f"{course[1]}"
@@ -69,7 +65,6 @@ class InlineStudent:
     async def item_info(self, category, item_id):
         current_level = 2
         markup = InlineKeyboardMarkup(row_width=1)
-        item = self.db.get_course(item_id)
 
         markup.row(
             InlineKeyboardButton(  # TODO пока заглушка
