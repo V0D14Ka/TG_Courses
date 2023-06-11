@@ -10,12 +10,15 @@ from static import messages
 
 
 async def show_menu(message: types.Message):
-    await list_categories(message)
+    if not db.is_admin_exist(message.from_user.id) and not db.is_user_exist(message.from_user.id):
+        await bot.send_message(message.from_user.id, "Для начала работы напишите - /start")
+    else:
+        await list_categories(message)
 
 
 async def list_categories(message: Union[types.CallbackQuery, types.Message], **kwargs):
 
-    if db.is_admin_exist(message.from_user.id):
+    if db.is_admin_exist(message.from_user.id) and db.is_admin_active(message.from_user.id):
         markup = await inline_admin.menu_keyboard()
     else:
         markup = await inline_student.menu_keyboard()
