@@ -3,11 +3,11 @@ from aiogram.utils.callback_data import CallbackData
 
 
 class InlineAdmin:
-    menu_cd = CallbackData("show_menu", "is_admin", "level", "category", "item_id")
-    sub_course_cd = CallbackData("sub", "item_id")
+    menu_cd = CallbackData("show_menu", "is_admin", "level", "category", "item_id", "to_change")
+    update_course_cd = CallbackData("sub", "item_id")
 
-    def make_callback_data(self, level, is_admin=1, category=0, item_id=0):
-        return self.menu_cd.new(is_admin=is_admin, level=level, category=category, item_id=item_id)
+    def make_callback_data(self, level, is_admin=1, category=0, item_id=0, to_change=0):
+        return self.menu_cd.new(is_admin=is_admin, level=level, category=category, item_id=item_id, to_change=to_change)
 
     async def menu_keyboard(self):
         current_level = 0
@@ -15,14 +15,14 @@ class InlineAdmin:
 
         markup.insert(
             InlineKeyboardButton(text="Открытые курсы", callback_data=self.make_callback_data(
-                                                                                              level=current_level + 1,
-                                                                                              category=1))
+                level=current_level + 1,
+                category=1))
         )
 
         markup.insert(
             InlineKeyboardButton(text="Закрытые курсы", callback_data=self.make_callback_data(
-                                                                                              level=current_level + 1,
-                                                                                              category=2))
+                level=current_level + 1,
+                category=2))
         )
         return markup
 
@@ -52,16 +52,84 @@ class InlineAdmin:
         markup = InlineKeyboardMarkup(row_width=1)
 
         markup.row(
-            InlineKeyboardButton(  # TODO пока заглушка
+            InlineKeyboardButton(
                 text="Редактировать",
-                callback_data=self.make_callback_data(level=current_level - 1, category=category)
+                callback_data=self.make_callback_data(level=current_level + 1, category=category, item_id=item_id)
             )
         )
         markup.row(
-            InlineKeyboardButton(  # TODO пока заглушка
+            InlineKeyboardButton(
                 text="Назад",
                 callback_data=self.make_callback_data(level=current_level - 1, category=category)
             )
         )
 
+        return markup
+
+    async def update_item_menu(self, category, item_id):
+        current_level = 3
+        markup = InlineKeyboardMarkup(row_width=1)
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Название",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      to_change=1)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Расписание",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      to_change=2)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Цена",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      to_change=3)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Аудитория",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      to_change=4)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Преподаватель",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      to_change=5)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Комментарий",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      to_change=6)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Статус",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      to_change=7)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Назад",
+                callback_data=self.make_callback_data(level=current_level - 1, item_id=item_id, category=category)
+            )
+        )
         return markup

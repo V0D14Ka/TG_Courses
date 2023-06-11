@@ -55,6 +55,35 @@ class BotDB:
         result = self.cur.execute("SELECT * FROM `courses` WHERE `id` = ?", (item_id,))
         return result.fetchone()
 
+    def update_course(self, to_change, item_id, value):
+        try:
+            match to_change:
+                case "1":
+                    print("case 1")
+                    result = self.cur.execute("UPDATE courses SET `title` = ? WHERE `id` = ? ", (value, item_id, ))
+                case "2":
+                    print("case 2")
+                    result = self.cur.execute("UPDATE courses SET `schedule` = ? WHERE `id` = ? ", (value, item_id,))
+                case "3":
+                    print("case 3")
+                    result = self.cur.execute("UPDATE courses SET `price` = ? WHERE `id` = ? ", (value, item_id,))
+                case "4":
+                    print("case 4")
+                    result = self.cur.execute("UPDATE courses SET `audience` = ? WHERE `id` = ? ", (value, item_id,))
+                case "5":
+                    print("case 5")
+                    result = self.cur.execute("UPDATE courses SET `teacher` = ? WHERE `id` = ? ", (value, item_id,))
+                case "6":
+                    print("case 6")
+                    result = self.cur.execute("UPDATE courses SET `comment` = ? WHERE `id` = ? ", (value, item_id,))
+                case "7":
+                    print("case 7")
+                    result = self.cur.execute("UPDATE courses SET `status` = ? WHERE `id` = ? ", (value, item_id,))
+        except:
+            return False
+        self.save()
+        return True
+
     def is_admin_exist(self, user_id):
         result = self.cur.execute("SELECT * FROM `administrators` WHERE `id` = ?", (user_id,))
         return bool(len(result.fetchall()))
