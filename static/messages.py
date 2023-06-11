@@ -20,3 +20,20 @@ item_info = '''
 Преподаватель - %s.
 Комментарий - %s.
 '''
+
+ask_for_update_course = '''
+Текущее значение: %s. 
+Введите новое значение: '''
+
+
+def make_item_info(item, updated):
+    answer = item_info % (item[1], item[2], item[3],
+                          item[4], item[5], item[6])
+    if updated:
+        return "Изменение прошло успешно:\n" + answer
+    else:
+        return answer
+
+
+def make_ask_for_update_course(current_val):
+    return ask_for_update_course % current_val
