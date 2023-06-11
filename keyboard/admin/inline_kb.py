@@ -22,7 +22,7 @@ class InlineAdmin:
         markup.insert(
             InlineKeyboardButton(text="Закрытые курсы", callback_data=self.make_callback_data(
                 level=current_level + 1,
-                category=2))
+                category=0))
         )
         return markup
 
