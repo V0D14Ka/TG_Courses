@@ -3,7 +3,8 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.utils.exceptions import MessageCantBeDeleted, CantInitiateConversation, BotBlocked, Unauthorized
 from aiogram.dispatcher import FSMContext
 
-from create_bot import db, bot
+from DB.models import Users, Administrators, admin_pydantic, Courses
+from create_bot import bot
 from static import messages
 
 
@@ -14,10 +15,9 @@ class FSMAdmin(StatesGroup):
 
 async def commands_start(message: types.Message):
     try:
-        if db.is_admin_exist(message.from_user.id):
-            print("is Admin")
-            if db.is_admin_active(message.from_user.id):
-                print("Admin is active")
+        if await Administrators.exists(id=message.from_user.id):
+            admin = await Administrators.get(id=message.from_user.id)
+            if admin.is_active:
                 await bot.send_message(message.from_user.id,
                                        messages.already_authenticated)
             else:
@@ -26,9 +26,10 @@ async def commands_start(message: types.Message):
                 await bot.send_message(message.from_user.id,
                                        messages.ask_for_password)
         else:
-            if not db.is_user_exist(message.from_user.id):
-                db.reg_user(message.from_user.id)
-                db.save()
+            if not await Users.exists(id=message.from_user.id):
+                await Users.create(
+                    id=message.from_user.id
+                )
             msg = messages.welcome_mesg if message.get_command() == '/start' else messages.help_mesg
 
             await bot.send_message(message.from_user.id, msg)
@@ -47,9 +48,10 @@ async def commands_start(message: types.Message):
 
 
 async def check_password(message: types.Message, state: FSMContext):
-    res = db.check_admin_password(message.from_user.id, message.text)
-    if res:
-        db.make_admin_active(message.from_user.id)
+    res = await Administrators.get(id=message.from_user.id)
+    if res.password == message.text:
+        res.is_active = True
+        await res.save()
     answer = "Успешно, используйте /menu" if res else "Неверный пароль"
 
     try:

@@ -5,7 +5,8 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.utils.exceptions import MessageCantBeDeleted, MessageNotModified
 from aiogram.dispatcher import FSMContext
 
-from create_bot import db, bot, inline_admin, validation
+from DB.models import Courses
+from create_bot import bot, inline_admin, validation
 from handlers.general.menu import list_categories
 from static import messages
 
@@ -53,7 +54,7 @@ async def update_item(callback: types.CallbackQuery, state: FSMContext, category
         data["category"] = category
         data["message"] = callback.message
 
-        item = db.get_course(item_id)
+        item = await Courses.get(id=item_id)
         await callback.message.edit_text(messages.make_ask_for_update_course(item[int(to_change)]))
         await FSMUpdateItem.new_value.set()
 
@@ -71,7 +72,7 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
 
         # Обработка отмены
         if message.text.lower() == 'отмена':
-            item = db.get_course(item_id)
+            item = await Courses.get(id=item_id)
             try:
                 await prepare_item_info(msg, messages.make_item_info(item, updated=False), category, item_id)
                 await message.delete()
@@ -98,10 +99,14 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
             return
 
         # Изменение курса, если сюда пришло, значит проблем нет
-        if db.update_course(to_change, item_id, new_value):
-            item = db.get_course(item_id)
+        item = await Courses.get(id=item_id)
+        item[int(to_change)] = new_value
+
+        try:
+            await item.save()
+            item = await Courses.get(id=item_id)
             await prepare_item_info(msg, messages.make_item_info(item, updated=True), category, item_id)
-        else:
+        except:
             await bot.send_message(message.from_user.id, messages.went_wrong)
         await state.finish()
 
@@ -125,13 +130,12 @@ async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_
             await list_categories(call)
 
         case "1":
-            print(category)
-            courses = db.get_courses(category)
+            courses = await Courses.filter(status=int(category))
             await call.message.edit_text("Выберите курс")
             await list_sub_admin_menu(call, category=category, item_id=item_id, courses=courses)
 
         case "2":
-            item = db.get_course(item_id)
+            item = await Courses.get(id=item_id)
             await prepare_item_info(call.message, messages.make_item_info(item, updated=False), category, item_id)
 
         case "3":

@@ -26,15 +26,40 @@ item_info = '''
 Преподаватель - %s.
 Комментарий - %s.
 '''
+user_info = '''
+Ваши данные:
+ФИО - %s.
+Группа - %s.
+Номер телефона - %s.
+Дата рождения - %s.
+Паспорт - %s.
+Регистрация - %s.
+'''
 ask_for_update_course = '''
 Для отмены напишите - "Отмена".
 Текущее значение: %s. 
 Введите новое значение: '''
 
+ask_for_update_user_info = '''
+Введите %s:
+Для отмены напишите "Отмена". 
+Обращаю ваше внимание: в случае отмены весь прогресс будет утерян.
+'''
+
 
 def make_item_info(item, updated):  # Сборка информации о курсе
     answer = item_info % (item[1], item[2], item[3],
                           item[4], item[5], item[6])
+    if updated:
+        return "Изменение прошло успешно:\n" + answer
+    else:
+        return answer
+
+
+def make_user_info(item, updated):  # Сборка информации о курсе
+    passport = str(item[5]) + str(item[6]) + str(item[7]) + str(item[8])
+    answer = user_info % (item[1], item[2], item[3],
+                          item[4], passport, item[9])
     if updated:
         return "Изменение прошло успешно:\n" + answer
     else:

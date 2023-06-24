@@ -29,7 +29,7 @@ class InlineStudent:
 
         return markup
 
-    async def category_keyboard(self, category, courses):
+    async def category_keyboard(self, category=0, courses=None, user_info=None, empty_info=False):
         current_level = 1
         markup = InlineKeyboardMarkup(row_width=1)
         print(category)
@@ -50,8 +50,14 @@ class InlineStudent:
                 pass
 
             case "3":
-                print("Выбрано обо мне")  # TODO пока заглушка
-                pass
+                markup = InlineKeyboardMarkup(row_width=1)
+
+                markup.row(
+                    InlineKeyboardButton(  # TODO пока заглушка
+                        text="Изменить" if not empty_info else "Заполнить",
+                        callback_data=self.make_callback_data(level=current_level + 1, category=category)
+                    )
+                )
 
         markup.row(
             InlineKeyboardButton(

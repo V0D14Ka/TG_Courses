@@ -1,110 +1,13 @@
-import sqlite3
+import tortoise
 
 
-class BotDB:
-    def __init__(self, db):
-        self.base = sqlite3.connect(db)
-        self.cur = self.base.cursor()
-        self.base.execute("CREATE TABLE IF NOT EXISTS users("
-                          "id INTEGER NOT NULL PRIMARY KEY, "
-                          "full_name TEXT,"
-                          "study_group TEXT,"
-                          "phone_number INTEGER,"
-                          "date_of_birth DATETIME,"
-                          "passport_data INTEGER,"
-                          "passport_date DATETIME,"
-                          "passport_issued TEXT,"
-                          "department_code INTEGER,"
-                          "place_of_registration TEXT,"
-                          "courses TEXT)")
-
-        self.base.execute("CREATE TABLE IF NOT EXISTS administrators("
-                          "id INTEGER NOT NULL PRIMARY KEY,"
-                          "full_name TEXT,"
-                          "password TEXT,"
-                          "is_active BOOLEAN DEFAULT (False))")
-
-        self.base.execute("CREATE TABLE IF NOT EXISTS courses("
-                          "id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"
-                          "title TEXT,"
-                          "schedule TEXT,"
-                          "price INTEGER,"
-                          "audience INTEGER,"
-                          "teacher TEXT,"
-                          "comment TEXT,"
-                          "status BOOLEAN DEFAULT (False))")
-
-        self.base.commit()
-
-    def reg_user(self, user_id):
-        self.cur.execute("INSERT INTO `users` (`id`) VALUES (?)", (user_id,))
-
-    def get_user_id(self, user_id):
-        result = self.cur.execute("SELECT `id` FROM `users` WHERE `id` = ?", (user_id,))
-        return result.fetchone()[0]
-
-    def is_user_exist(self, user_id):
-        result = self.cur.execute("SELECT * FROM `users` WHERE `id` = ?", (user_id,))
-        return bool(len(result.fetchall()))
-
-    def get_courses(self, status):
-        result = self.cur.execute("SELECT * FROM `courses` WHERE `status` = ?", (status,))
-        return result
-
-    def get_course(self, item_id):
-        result = self.cur.execute("SELECT * FROM `courses` WHERE `id` = ?", (item_id,))
-        return result.fetchone()
-
-    def update_course(self, to_change, item_id, value):
-        try:
-            match to_change:
-                case "1":
-                    print("case 1")
-                    result = self.cur.execute("UPDATE courses SET `title` = ? WHERE `id` = ? ", (value, item_id, ))
-                case "2":
-                    print("case 2")
-                    result = self.cur.execute("UPDATE courses SET `schedule` = ? WHERE `id` = ? ", (value, item_id,))
-                case "3":
-                    print("case 3")
-                    result = self.cur.execute("UPDATE courses SET `price` = ? WHERE `id` = ? ", (value, item_id,))
-                case "4":
-                    print("case 4")
-                    result = self.cur.execute("UPDATE courses SET `audience` = ? WHERE `id` = ? ", (value, item_id,))
-                case "5":
-                    print("case 5")
-                    result = self.cur.execute("UPDATE courses SET `teacher` = ? WHERE `id` = ? ", (value, item_id,))
-                case "6":
-                    print("case 6")
-                    result = self.cur.execute("UPDATE courses SET `comment` = ? WHERE `id` = ? ", (value, item_id,))
-                case "7":
-                    print("case 7")
-                    result = self.cur.execute("UPDATE courses SET `status` = ? WHERE `id` = ? ", (value, item_id,))
-        except:
-            return False
-        self.save()
-        return True
-
-    def is_admin_exist(self, user_id):
-        result = self.cur.execute("SELECT * FROM `administrators` WHERE `id` = ?", (user_id,))
-        return bool(len(result.fetchall()))
-
-    def is_admin_active(self, user_id):
-        result = self.cur.execute("SELECT * FROM `administrators` WHERE `id` = ?", (user_id,))
-        return result.fetchone()[3]
-
-    def make_admin_active(self, user_id):
-        self.cur.execute("UPDATE administrators SET is_active = TRUE WHERE id = ?", (user_id,))
-        self.save()
-        return True
-
-    def check_admin_password(self, user_id, password):
-        result = self.cur.execute("SELECT * FROM `administrators` WHERE `id` = ?", (user_id,))
-        if result.fetchone()[2] == password:
-            return True
-        return False
-
-    def save(self):
-        return self.base.commit()
-
-    def close(self):
-        self.base.close()
+async def db_init():
+    # Here we connect to a SQLite DB file.
+    # also specify the app name of "models"
+    # which contain models from "app.models"
+    await tortoise.Tortoise.init(
+        db_url='sqlite://sqlite.db',
+        modules={'models': ['DB.models']}
+    )
+    # Generate the schema
+    await tortoise.Tortoise.generate_schemas()

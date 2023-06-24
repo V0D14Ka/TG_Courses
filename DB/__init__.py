@@ -1,1 +1,1 @@
-from DB.sqlite_db import BotDB
+from DB.sqlite_db import db_init
