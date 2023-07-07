@@ -2,7 +2,8 @@ from typing import Union
 
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters.state import StatesGroup, State
-from aiogram.utils.exceptions import MessageCantBeDeleted, CantInitiateConversation, BotBlocked, Unauthorized
+from aiogram.utils.exceptions import MessageCantBeDeleted, CantInitiateConversation, BotBlocked, Unauthorized, \
+    MessageNotModified
 from aiogram.dispatcher import FSMContext
 from tortoise.expressions import F, Q
 from DB.models import Administrators, Users
@@ -18,7 +19,6 @@ async def show_menu(message: types.Message):
 
 
 async def list_categories(message: Union[types.CallbackQuery, types.Message], **kwargs):
-
     if await Administrators.exists(Q(id=message.from_user.id) and Q(is_active=True)):
         markup = await inline_admin.menu_keyboard()
     else:
@@ -32,7 +32,21 @@ async def list_categories(message: Union[types.CallbackQuery, types.Message], **
         await message.answer("Выберите пункт", reply_markup=markup)
 
 
+async def check_validate(call: types.CallbackQuery, message: types.Message, code, example):
+    if code != 200:
+        try:
+            await call.message.edit_text(messages.incorrect_input % (code, example))
+        except MessageNotModified:
+            pass
+
+        try:
+            await message.delete()
+        except MessageCantBeDeleted:
+            pass
+
+        return True
+    return False
+
 
 def register_handlers_menu(_dp: Dispatcher):
     _dp.register_message_handler(show_menu, commands=['menu'])
-

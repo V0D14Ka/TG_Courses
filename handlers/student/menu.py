@@ -11,7 +11,7 @@ from aiogram.dispatcher import FSMContext
 from tortoise.exceptions import NoValuesFetched
 from DB.models import Courses, Users, admin_pydantic, student_pydantic
 from create_bot import bot, inline_student, validation
-from handlers.general.menu import list_categories
+from handlers.general.menu import list_categories, check_validate
 from static import messages
 
 
@@ -93,22 +93,6 @@ async def check_cancel_update(call: types.CallbackQuery, message: types.Message,
             await state.finish()
         except MessageCantBeDeleted:
             pass
-        return True
-    return False
-
-
-async def check_validate(call: types.CallbackQuery, message: types.Message, code, example):
-    if code != 200:
-        try:
-            await call.message.edit_text(messages.incorrect_input % (code, example))
-        except MessageNotModified:
-            pass
-
-        try:
-            await message.delete()
-        except MessageCantBeDeleted:
-            pass
-
         return True
     return False
 
@@ -205,7 +189,8 @@ async def birth_set(message: types.Message, state: FSMContext, **kwargs):
             return
 
         await message.delete()
-        await call.message.edit_text(messages.ask_for_update_user_info % ("5", "Серия и номер паспорта", "'1010 123456'"))
+        await call.message.edit_text(
+            messages.ask_for_update_user_info % ("5", "Серия и номер паспорта", "'1010 123456'"))
         await FSMUpdateStudentInfo.next()
 
 
@@ -348,13 +333,15 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
             await user.save()
         except NoValuesFetched as e:
             raise e
+
         try:
             await message.delete()
-            await list_func_student(call, category=category)
-            await FSMUpdateStudentInfo.next()
-            await state.finish()
         except:
             pass
+
+        await list_func_student(call, category=category)
+        await FSMUpdateStudentInfo.next()
+        await state.finish()
 
 
 # Навигация

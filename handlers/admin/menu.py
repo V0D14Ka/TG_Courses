@@ -3,16 +3,17 @@ from typing import Union
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import message
-from aiogram.utils.exceptions import MessageCantBeDeleted,MessageNotModified
+from aiogram.utils.exceptions import MessageCantBeDeleted, MessageNotModified
 from aiogram.dispatcher import FSMContext
 from tortoise.expressions import Q
 
 from DB.models import Courses, Administrators
 from create_bot import bot, inline_admin, validation
-from handlers.general.menu import list_categories
+from handlers.general.menu import list_categories, check_validate
 from static import messages
 
 from tortoise.exceptions import NoValuesFetched
+
 
 # Класс состояния для редактирования
 class FSMUpdateItem(StatesGroup):
@@ -91,23 +92,41 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
             return
 
         # Валидация
-        if await validation.processing_validate(call, message, to_change, 1):
-            # Изменение курса, если сюда пришло, значит проблем нет
+        if to_change in "34":
+            code = await validation.val_digit(new_value)
+            example = "1100"
+        elif to_change == "5":
+            code = await validation.val_fio(new_value)
+            example = "Иванов Иван Иванович"
+        elif to_change in "16":
+            code = await validation.val_mix(new_value)
+            example = "Какой-то текст..."
+        elif to_change == "2":
+            code = await validation.val_schedule(new_value)
+            example = "21.07 - 10:10-11:40"
+        else:
+            code = await validation.val_bool(new_value)
+            example = "1"
+
+        if await check_validate(call, message, code, example):
+            return
+
+        # Изменение курса, если сюда пришло, значит проблем нет
+        item = await Courses.get(id=item_id)
+        item[int(to_change)] = new_value
+
+        try:
+            await item.save()
             item = await Courses.get(id=item_id)
-            item[int(to_change)] = new_value
+            await prepare_item_info(call.message, messages.make_item_info(item, updated=True), category, item_id)
+        except:
+            await bot.send_message(message.from_user.id, messages.went_wrong)
+        await state.finish()
 
-            try:
-                await item.save()
-                item = await Courses.get(id=item_id)
-                await prepare_item_info(call.message, messages.make_item_info(item, updated=True), category, item_id)
-            except:
-                await bot.send_message(message.from_user.id, messages.went_wrong)
-            await state.finish()
-
-            try:
-                await message.delete()
-            except MessageCantBeDeleted:
-                pass
+        try:
+            await message.delete()
+        except MessageCantBeDeleted:
+            pass
 
 
 # Навигация по меню

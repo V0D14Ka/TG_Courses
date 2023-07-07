@@ -54,7 +54,7 @@ class Validation:
         pattern = re.compile("^\d{3}?[-]\d{3}$")  # pattern
         return 200 if re.fullmatch(pattern, string) else "Неверный формат кода"
 
-    async def val_digit(self, string):
-        pattern = re.compile("\-?\d+(\.\d{0,})?")  # pattern
-        return 200 if re.fullmatch(pattern, string) else "Неверный формат"
-
+    async def val_schedule(self, string):
+        pattern = re.compile("(0[1-9]|[12][0-9]|3[01])[.](0[1-9]|1[012])\s[-]\s(0[1-9]|1[0-9]|2[0-4])[:]([0-5][0-9])"
+                             "[-](0[1-9]|1[0-9]|2[0-4])[:]([0-5][0-9])")  # pattern
+        return 200 if re.fullmatch(pattern, string) else "Неверный формат расписания"
