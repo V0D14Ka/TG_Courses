@@ -33,12 +33,16 @@ async def list_func_student(callback: Union[types.Message, types.CallbackQuery],
     match category:
         case "1":  # Открытые курсы
             courses = await Courses.filter(status=int(category))
-            print(courses)
             await callback.message.edit_text("Выберите курс")
             markup = await inline_student.category_keyboard(category, courses=courses)
+            await callback.message.edit_reply_markup(markup)
 
         case "2":  # Мои курсы
-            pass
+            user = await Users.get(id=callback.from_user.id)
+            courses = await user.courses.all()
+            await callback.message.edit_text("Выберите курс")
+            markup = await inline_student.category_keyboard(category, courses=courses)
+            await callback.message.edit_reply_markup(markup)
 
         case "3":  # Информация о себе
             user = await Users.get(id=callback.from_user.id)
@@ -52,36 +56,51 @@ async def list_func_student(callback: Union[types.Message, types.CallbackQuery],
                 await callback.message.edit_text(message)
                 markup = await inline_student.category_keyboard(category, empty_info=True)
 
-    await callback.message.edit_reply_markup(markup)
+            await callback.message.edit_reply_markup(markup)
 
 
 # Корректная выдача клавиатуры уровня 2
 async def info_edit_markup(callback: Union[types.Message, types.CallbackQuery], category, item_id, **kwargs):
+    user = await Users.get(id=callback.from_user.id)
+    is_sub = await user.courses.filter(id=item_id).exists()
+
     if isinstance(callback, types.CallbackQuery):
-        markup = await inline_student.item_info(category, item_id)
+        markup = await inline_student.item_info(category, item_id, int(is_sub))
         await callback.message.edit_reply_markup(markup)
 
     if isinstance(callback, types.Message):
-        markup = await inline_student.item_info(category, item_id)
+        markup = await inline_student.item_info(category, item_id, int(is_sub))
         await callback.edit_reply_markup(markup)
 
 
 # Уровень 2
 async def sublist_func_student(callback: types.CallbackQuery, category, state: FSMContext, item_id=0, **kwargs):
-    match category:
-        case "1":  # Детальная информация о курсе
-            item = await Courses.get(id=item_id)
-            await callback.message.edit_text(messages.make_item_info(item, updated=False))
-            await info_edit_markup(callback, category, item_id)
-        case "2":  # Детальная информация о курсе
-            pass
-        case "3":  # Старт редактирования профиля
-            await callback.message.edit_text(messages.ask_for_update_user_info % ("1", "ФИО", "'Иванов Иван Иванович'"))
-            async with state.proxy() as data:
-                # Передаем необходимую информацию
-                data["category"] = category
-                data["call"] = callback
-                await FSMUpdateStudentInfo.full_name.set()
+
+    if str(category) in "12":
+        item = await Courses.get(id=item_id)
+        await callback.message.edit_text(messages.make_item_info(item, updated=False))
+        await info_edit_markup(callback, category, item_id)
+    else:
+        await callback.message.edit_text(messages.ask_for_update_user_info % ("1", "ФИО", "'Иванов Иван Иванович'"))
+        async with state.proxy() as data:
+            # Передаем необходимую информацию
+            data["category"] = category
+            data["call"] = callback
+            await FSMUpdateStudentInfo.full_name.set()
+
+
+# Уровень 3 - подписка/отписка
+async def sub_to_course(callback: types.CallbackQuery, category, item_id, is_sub, **kwargs):
+    user = await Users.get(id=callback.from_user.id)
+    course = await Courses.get(id=item_id)
+    if int(is_sub) == 0:
+        await user.courses.add(course)
+        await user.save()
+    elif int(is_sub) == 1:
+        await user.courses.remove(course)
+        await user.save()
+
+    await info_edit_markup(callback, category, item_id)
 
 
 # Обработка отмены, выход из состояния и возврат в меню
@@ -349,6 +368,7 @@ async def student_navigate(call: types.CallbackQuery, state: FSMContext, callbac
     current_level = callback_data.get('level')
     category = callback_data.get('category')
     item_id = callback_data.get('item_id')
+    is_sub = callback_data.get('sub')
 
     match current_level:
         case "0":
@@ -358,6 +378,8 @@ async def student_navigate(call: types.CallbackQuery, state: FSMContext, callbac
             await list_func_student(call, category=category, item_id=item_id)
         case "2":
             await sublist_func_student(call, item_id=item_id, category=category, state=state)
+        case "3":
+            await sub_to_course(call, category=category, item_id=item_id, is_sub=is_sub)
 
 
 def register_handlers_menu_student(_dp: Dispatcher):

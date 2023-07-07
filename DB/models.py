@@ -15,7 +15,7 @@ class Users(Model):
     passport_issued = fields.CharField(100, null=True)
     department_code = fields.IntField(max_length=7, null=True)
     place_of_registration = fields.CharField(100, null=True)
-    courses = fields.CharField(100, null=True)
+    courses = fields.ManyToManyField("models.Courses", related_name='events')
 
     def __str__(self):
         return self.full_name
