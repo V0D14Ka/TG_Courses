@@ -1,3 +1,6 @@
+from tortoise.expressions import Q
+
+from DB.models import admin_pydantic, Users
 from DB.sqlite_db import db_init
 from create_bot import dp
 from aiogram.utils import executor

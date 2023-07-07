@@ -1,4 +1,6 @@
 # Information
+from DB.models import Users
+
 welcome_mesg = '''Добро пожаловать в наш бот! Используйте /menu'''
 help_mesg = '''Здесь будет инфа о командах бота'''
 
@@ -10,7 +12,8 @@ went_wrong = 'Что-то пошло не так...'
 incorrect_input = '''
 Неверный ввод, попробуйте еще раз 
 или напишите 'Отмена'!
-Ошибка: %s
+Ошибка: %s.
+Пример : %s.
 '''
 
 # Authenticate
@@ -41,7 +44,9 @@ ask_for_update_course = '''
 Введите новое значение: '''
 
 ask_for_update_user_info = '''
-Введите %s:
+Шаг %s/9.
+Введите %s.
+Пример : %s.
 Для отмены напишите "Отмена". 
 Обращаю ваше внимание: в случае отмены весь прогресс будет утерян.
 '''
@@ -56,10 +61,10 @@ def make_item_info(item, updated):  # Сборка информации о ку�
         return answer
 
 
-def make_user_info(item, updated):  # Сборка информации о курсе
-    passport = str(item[5]) + str(item[6]) + str(item[7]) + str(item[8])
-    answer = user_info % (item[1], item[2], item[3],
-                          item[4], passport, item[9])
+async def make_user_info(item: Users, updated):  # Сборка информации о студенте
+    passport = str(item.passport_data) + str(item.passport_date) + str(item.passport_issued) + str(item.department_code)
+    answer = user_info % (item.full_name, item.study_group, item.phone_number,
+                          item.date_of_birth, passport, item.place_of_registration)
     if updated:
         return "Изменение прошло успешно:\n" + answer
     else:

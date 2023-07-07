@@ -1,31 +1,60 @@
-class Validation:
-    dict = {  # Цифры - номер поля
-        "digit": "34",
-        "text": "1256",
-        "bool": "7"
-    }
+import re
+from aiogram import types
+from aiogram.utils.exceptions import MessageNotModified, MessageCantBeDeleted
 
-    def digit(self, amount):
-        if not str(amount).replace('.', '').isdigit() or str(amount)[0] in "0,.":
-            return "Значение должно быть числом!"
+from static import messages
+
+
+# Простая самописная валидация
+class Validation:
+    async def val_digit(self, amount):
+        if not str(amount).replace('.', '').isdigit() or str(amount)[0] in "0,.-":
+            return "Значение должно быть положительным числом!"
+        if len(amount) > 10:
+            return "Слишком длинное число"
         return 200
 
-    def text(self, text):
+    async def val_text(self, text):
         if text.replace('.', '').isdigit():
             return "Значение не должно быть числом!"
-        return 200
+        if len(text) > 30:
+            return "Слишком большой текст"
+        pattern = re.compile("^[а-яА-ЯёЁa-zA-Z]+$")  # pattern
+        return 200 if re.fullmatch(pattern, text.replace(' ', '')) else "Неверный формат"
 
-    def bool(self, text):
+    async def val_bool(self, text):
         if int(text) == 1 or int(text) == 0:
             return 200
         return "Значение должно быть 1 или 0!"
 
-    def validate(self, message, m_type):
-        if m_type in self.dict['digit']:
-            return self.digit(message)
-        elif m_type in self.dict['text']:
-            return self.text(message)
-        elif m_type in self.dict['bool']:
-            return self.bool(message)
-        else:
-            raise Exception("Не знаю такого пункта")
+    async def val_fio(self, text):
+        if len(text) > 70:
+            return "Слишком большой ввод"
+        pattern = re.compile("^[а-яА-ЯёЁa-zA-Z]+ [а-яА-ЯёЁa-zA-Z]+ [а-яА-ЯёЁa-zA-Z]+$")  # pattern
+        return 200 if re.fullmatch(pattern, text) else "Неверный формат ввода ФИО"
+
+    async def val_date(self, string):
+        pattern = re.compile("(19|20)\d\d[-](0[1-9]|1[012])[-](0[1-9]|[12][0-9]|3[01])")  # pattern
+        return 200 if re.fullmatch(pattern, string) else "Неверный формат ввода даты"
+
+    async def val_mix(self, string):
+        if len(string) > 70:
+            return "Слишком длинное значение"
+        return 200
+
+    async def val_phone(self, string):
+        pattern = re.compile("^\d{11}$")  # pattern
+        return 200 if re.fullmatch(pattern, string) else "Неверный формат номера"
+
+    async def val_pass(self, string):
+        pattern = re.compile("^\d{4}\d{6}$")  # pattern
+        return 200 if re.fullmatch(pattern, string.replace(' ', '')) else "Неверный формат"
+
+    async def val_passcode(self, string):
+        pattern = re.compile("^\d{3}?[-]\d{3}$")  # pattern
+        return 200 if re.fullmatch(pattern, string) else "Неверный формат кода"
+
+    async def val_digit(self, string):
+        pattern = re.compile("\-?\d+(\.\d{0,})?")  # pattern
+        return 200 if re.fullmatch(pattern, string) else "Неверный формат"
+

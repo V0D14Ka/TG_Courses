@@ -1,12 +1,16 @@
 from typing import Union
 
+import tortoise
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters.state import StatesGroup, State
-from aiogram.utils.exceptions import MessageCantBeDeleted, CantInitiateConversation, BotBlocked, Unauthorized
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.utils.exceptions import MessageCantBeDeleted, CantInitiateConversation, BotBlocked, Unauthorized, \
+    MessageNotModified
 from aiogram.dispatcher import FSMContext
 
-from DB.models import Courses, Users
-from create_bot import bot, inline_student
+from tortoise.exceptions import NoValuesFetched
+from DB.models import Courses, Users, admin_pydantic, student_pydantic
+from create_bot import bot, inline_student, validation
 from handlers.general.menu import list_categories
 from static import messages
 
@@ -28,7 +32,8 @@ class FSMUpdateStudentInfo(StatesGroup):
 async def list_func_student(callback: Union[types.Message, types.CallbackQuery], category, **kwargs):
     match category:
         case "1":  # Открытые курсы
-            courses = await Courses.filter(id=category)
+            courses = await Courses.filter(status=int(category))
+            print(courses)
             await callback.message.edit_text("Выберите курс")
             markup = await inline_student.category_keyboard(category, courses=courses)
 
@@ -71,37 +76,64 @@ async def sublist_func_student(callback: types.CallbackQuery, category, state: F
         case "2":  # Детальная информация о курсе
             pass
         case "3":  # Старт редактирования профиля
-            await callback.message.edit_text(messages.ask_for_update_user_info % "ФИО")
+            await callback.message.edit_text(messages.ask_for_update_user_info % ("1", "ФИО", "'Иванов Иван Иванович'"))
             async with state.proxy() as data:
                 # Передаем необходимую информацию
                 data["category"] = category
-                data["message"] = callback
+                data["call"] = callback
                 await FSMUpdateStudentInfo.full_name.set()
+
+
+# Обработка отмены, выход из состояния и возврат в меню
+async def check_cancel_update(call: types.CallbackQuery, message: types.Message, state: FSMContext, category):
+    if message.text.lower() == 'отмена':
+        try:
+            await list_func_student(call, category=category)
+            await message.delete()
+            await state.finish()
+        except MessageCantBeDeleted:
+            pass
+        return True
+    return False
+
+
+async def check_validate(call: types.CallbackQuery, message: types.Message, code, example):
+    if code != 200:
+        try:
+            await call.message.edit_text(messages.incorrect_input % (code, example))
+        except MessageNotModified:
+            pass
+
+        try:
+            await message.delete()
+        except MessageCantBeDeleted:
+            pass
+
+        return True
+    return False
 
 
 # Далее FSM
 async def fullname_set(message: types.Message, state: FSMContext, **kwargs):
     async with state.proxy() as data:
-
         # Забираем необходимую информацию
         category = data["category"]
-        msg = data["message"]
+        call = data["call"]
         new_value = message.text
         # И кладем новую
         data["full_name"] = new_value
 
         # Обработка отмены
-        if message.text.lower() == 'отмена':
-            try:
-                await list_func_student(msg, category=category)
-                await message.delete()
-                await state.finish()
-            except MessageCantBeDeleted:
-                pass
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        code = await validation.val_fio(new_value)
+
+        if await check_validate(call, message, code, "'Иванов Иван Иванович'"):
             return
 
         await message.delete()
-        await msg.message.edit_text(messages.ask_for_update_user_info % "Номер группы")
+        await call.message.edit_text(messages.ask_for_update_user_info % ("2", "Номер группы", "'Б9999-11.11.11'"))
         await FSMUpdateStudentInfo.next()
 
 
@@ -109,53 +141,220 @@ async def group_set(message: types.Message, state: FSMContext, **kwargs):
     async with state.proxy() as data:
         # Забираем необходимую информацию на случай отмены
         category = data["category"]
-        msg = data["message"]
+        call = data["call"]
         new_value = message.text
         # И кладем новую
         data["group"] = new_value
 
         # Обработка отмены
-        if message.text.lower() == 'отмена':
-            try:
-                await list_func_student(msg, category=category)
-                await message.delete()
-                await state.finish()
-            except MessageCantBeDeleted:
-                pass
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_mix(new_value)
+
+        if await check_validate(call, message, code, "'Б9999-11.11.11'"):
             return
 
         await message.delete()
-        await msg.message.edit_text(messages.ask_for_update_user_info % "Номер телефона")
+        await call.message.edit_text(messages.ask_for_update_user_info % ("3", "Номер телефона", "'89990001111'"))
         await FSMUpdateStudentInfo.next()
-        await state.finish()
 
 
 async def phone_set(message: types.Message, state: FSMContext, **kwargs):
-    pass
+    async with state.proxy() as data:
+        # Забираем необходимую информацию на случай отмены
+        category = data["category"]
+        call = data["call"]
+        new_value = message.text
+        # И кладем новую
+        data["phone"] = new_value
+
+        # Обработка отмены
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_phone(new_value)
+
+        if await check_validate(call, message, code, "'89990001111'"):
+            return
+
+        await message.delete()
+        await call.message.edit_text(messages.ask_for_update_user_info % ("4", "Дату рождения", "'YYYY-MM-DD'"))
+        await FSMUpdateStudentInfo.next()
 
 
 async def birth_set(message: types.Message, state: FSMContext, **kwargs):
-    pass
+    async with state.proxy() as data:
+        # Забираем необходимую информацию на случай отмены
+        category = data["category"]
+        call = data["call"]
+        new_value = message.text
+        # И кладем новую
+        data["birth"] = new_value
+
+        # Обработка отмены
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_date(new_value)
+
+        if await check_validate(call, message, code, "'YYYY-MM-DD'"):
+            return
+
+        await message.delete()
+        await call.message.edit_text(messages.ask_for_update_user_info % ("5", "Серия и номер паспорта", "'1010 123456'"))
+        await FSMUpdateStudentInfo.next()
 
 
 async def pdata_set(message: types.Message, state: FSMContext, **kwargs):
-    pass
+    async with state.proxy() as data:
+        # Забираем необходимую информацию на случай отмены
+        category = data["category"]
+        call = data["call"]
+        new_value = message.text
+        # И кладем новую
+        data["pdata"] = new_value
+
+        # Обработка отмены
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_pass(new_value)
+
+        if await check_validate(call, message, code, "'1010 123456'"):
+            return
+
+        await message.delete()
+        await call.message.edit_text(messages.ask_for_update_user_info % ("6", "Дата выдачи паспорта", "'YYYY-MM-DD'"))
+        await FSMUpdateStudentInfo.next()
 
 
 async def pdate_set(message: types.Message, state: FSMContext, **kwargs):
-    pass
+    async with state.proxy() as data:
+        # Забираем необходимую информацию на случай отмены
+        category = data["category"]
+        call = data["call"]
+        new_value = message.text
+        # И кладем новую
+        data["pdate"] = new_value
+
+        # Обработка отмены
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_date(new_value)
+
+        if await check_validate(call, message, code, "'YYYY-MM-DD'"):
+            return
+
+        await message.delete()
+        await call.message.edit_text(messages.ask_for_update_user_info % ("7", "Кем выдан паспорт", "'Отделением ...'"))
+        await FSMUpdateStudentInfo.next()
 
 
 async def issued_set(message: types.Message, state: FSMContext, **kwargs):
-    pass
+    async with state.proxy() as data:
+        # Забираем необходимую информацию на случай отмены
+        category = data["category"]
+        call = data["call"]
+        new_value = message.text
+        # И кладем новую
+        data["issued"] = new_value
+
+        # Обработка отмены
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_text(new_value)
+
+        if await check_validate(call, message, code, "'Отделением ...'"):
+            return
+
+        await message.delete()
+        await call.message.edit_text(messages.ask_for_update_user_info % ("8", "Код паспорта", "'111-222'"))
+        await FSMUpdateStudentInfo.next()
 
 
 async def dcode_set(message: types.Message, state: FSMContext, **kwargs):
-    pass
+    async with state.proxy() as data:
+        # Забираем необходимую информацию на случай отмены
+        category = data["category"]
+        call = data["call"]
+        new_value = message.text
+        # И кладем новую
+        data["dcode"] = new_value.replace('-', '')
+
+        # Обработка отмены
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_passcode(new_value)
+
+        if await check_validate(call, message, code, "'111-222'"):
+            return
+
+        await message.delete()
+        await call.message.edit_text(messages.ask_for_update_user_info % ("9", "Место регистрации", "'Владивосток, "
+                                                                                                    "ул.Ленина 1'"))
+        await FSMUpdateStudentInfo.next()
 
 
 async def reg_set(message: types.Message, state: FSMContext, **kwargs):
-    pass
+    async with state.proxy() as data:
+        # Забираем необходимую информацию на случай отмены
+        category = data["category"]
+        call = data["call"]
+
+        # Обработка отмены
+        if await check_cancel_update(call, message, state, category):
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_mix(message.text.replace(' ', ''))
+
+        if await check_validate(call, message, code, "'Владивосток, ул.Ленина 1'"):
+            return
+
+        # Забираем инфу о пользователе
+        full_name = data["full_name"]
+        group = data["group"]
+        phone = data["phone"]
+        birth = data["birth"]
+        pdata = data["pdata"]
+        pdate = data["pdate"]
+        issued = data["issued"]
+        dcode = data["dcode"]
+        reg_place = message.text
+
+        # Сохраняем пользователя
+        try:
+            user = await Users.get(id=message.from_user.id)
+            user.full_name = full_name
+            user.study_group = group
+            user.phone_number = phone
+            user.date_of_birth = birth
+            user.passport_data = pdata
+            user.passport_date = pdate
+            user.passport_issued = issued
+            user.place_of_registration = reg_place
+            user.department_code = dcode
+            await user.save()
+        except NoValuesFetched as e:
+            raise e
+        try:
+            await message.delete()
+            await list_func_student(call, category=category)
+            await FSMUpdateStudentInfo.next()
+            await state.finish()
+        except:
+            pass
 
 
 # Навигация

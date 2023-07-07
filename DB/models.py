@@ -1,18 +1,19 @@
 from tortoise.contrib.pydantic import pydantic_model_creator
 from tortoise.models import Model
 from tortoise import fields
+from tortoise.validators import MaxLengthValidator
 
 
 class Users(Model):
     id = fields.IntField(pk=True)
-    full_name = fields.CharField(100, null=True)
+    full_name = fields.CharField(50, null=True)
     study_group = fields.CharField(100, null=True)
-    phone_number = fields.CharField(100, null=True)
-    date_of_birth = fields.DatetimeField(null=True)
-    passport_data = fields.IntField(null=True)
-    passport_date = fields.DatetimeField(null=True)
+    phone_number = fields.CharField(11, null=True)
+    date_of_birth = fields.DateField(null=True)
+    passport_data = fields.IntField(max_length=17, null=True)
+    passport_date = fields.CharField(11, null=True)
     passport_issued = fields.CharField(100, null=True)
-    department_code = fields.IntField(null=True)
+    department_code = fields.IntField(max_length=7, null=True)
     place_of_registration = fields.CharField(100, null=True)
     courses = fields.CharField(100, null=True)
 
@@ -86,3 +87,4 @@ class Courses(Model):
 
 
 admin_pydantic = pydantic_model_creator(Administrators, name="admin")
+student_pydantic = pydantic_model_creator(Users, name="user")

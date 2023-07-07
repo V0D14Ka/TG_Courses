@@ -2,14 +2,17 @@ from typing import Union
 
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters.state import StatesGroup, State
-from aiogram.utils.exceptions import MessageCantBeDeleted, MessageNotModified
+from aiogram.types import message
+from aiogram.utils.exceptions import MessageCantBeDeleted,MessageNotModified
 from aiogram.dispatcher import FSMContext
+from tortoise.expressions import Q
 
-from DB.models import Courses
+from DB.models import Courses, Administrators
 from create_bot import bot, inline_admin, validation
 from handlers.general.menu import list_categories
 from static import messages
 
+from tortoise.exceptions import NoValuesFetched
 
 # Класс состояния для редактирования
 class FSMUpdateItem(StatesGroup):
@@ -52,11 +55,24 @@ async def update_item(callback: types.CallbackQuery, state: FSMContext, category
         data["to_change"] = to_change
         data["item_id"] = item_id
         data["category"] = category
-        data["message"] = callback.message
+        data["call"] = callback
 
         item = await Courses.get(id=item_id)
         await callback.message.edit_text(messages.make_ask_for_update_course(item[int(to_change)]))
         await FSMUpdateItem.new_value.set()
+
+
+# Обработка отмены, выход из состояния и возврат в меню
+async def check_cancel_update(call, message, state, category, item_id):
+    if message.text.lower() == 'отмена':
+        item = await Courses.get(id=item_id)
+        try:
+            await prepare_item_info(call.message, messages.make_item_info(item, updated=False), category, item_id)
+            await message.delete()
+            await state.finish()
+        except MessageCantBeDeleted:
+            pass
+        return
 
 
 # Уровень 4 - обновление курса
@@ -67,57 +83,39 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
         to_change = data["to_change"]
         item_id = data["item_id"]
         category = data["category"]
-        msg = data["message"]
+        call = data["call"]
         new_value = message.text
 
         # Обработка отмены
-        if message.text.lower() == 'отмена':
-            item = await Courses.get(id=item_id)
-            try:
-                await prepare_item_info(msg, messages.make_item_info(item, updated=False), category, item_id)
-                await message.delete()
-                await state.finish()
-            except MessageCantBeDeleted:
-                pass
+        if await check_cancel_update(call, message, state, category, item_id):
             return
 
-        code = validation.validate(new_value, to_change)  # Если все хорошо, вернет код 200, иначе ошибку
-
-        # Обработка ошибки валидации
-        if code != 200:
+        # Валидация
+        if await validation.processing_validate(call, message, to_change, 1):
+            # Изменение курса, если сюда пришло, значит проблем нет
+            item = await Courses.get(id=item_id)
+            item[int(to_change)] = new_value
 
             try:
-                await msg.edit_text(messages.incorrect_input % code)
-            except MessageNotModified:
-                pass
+                await item.save()
+                item = await Courses.get(id=item_id)
+                await prepare_item_info(call.message, messages.make_item_info(item, updated=True), category, item_id)
+            except:
+                await bot.send_message(message.from_user.id, messages.went_wrong)
+            await state.finish()
 
             try:
                 await message.delete()
             except MessageCantBeDeleted:
                 pass
-
-            return
-
-        # Изменение курса, если сюда пришло, значит проблем нет
-        item = await Courses.get(id=item_id)
-        item[int(to_change)] = new_value
-
-        try:
-            await item.save()
-            item = await Courses.get(id=item_id)
-            await prepare_item_info(msg, messages.make_item_info(item, updated=True), category, item_id)
-        except:
-            await bot.send_message(message.from_user.id, messages.went_wrong)
-        await state.finish()
-
-        try:
-            await message.delete()
-        except MessageCantBeDeleted:
-            pass
 
 
 # Навигация по меню
 async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+    # Проверка админа на случай если отобрали права
+    if not await Administrators.exists(Q(id=call.from_user.id) and Q(is_active=True)):
+        await call.message.edit_text("У вас больше нет прав пользоваться этим меню, вызовите новое - /menu")
+        return
     # Достаем инфу из колбека
     current_level = callback_data.get('level')
     category = callback_data.get('category')
