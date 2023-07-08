@@ -16,6 +16,7 @@ class FSMAdmin(StatesGroup):
 async def commands_start(message: types.Message):
     try:
         if await Administrators.exists(id=message.from_user.id):
+            print("Exist")
             admin = await Administrators.get(id=message.from_user.id)
             if admin.is_active:
                 await bot.send_message(message.from_user.id,
@@ -26,6 +27,7 @@ async def commands_start(message: types.Message):
                 await bot.send_message(message.from_user.id,
                                        messages.ask_for_password)
         else:
+            print("lol")
             if not await Users.exists(id=message.from_user.id):
                 await Users.create(
                     id=message.from_user.id

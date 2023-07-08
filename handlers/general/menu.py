@@ -19,7 +19,8 @@ async def show_menu(message: types.Message):
 
 
 async def list_categories(message: Union[types.CallbackQuery, types.Message], **kwargs):
-    if await Administrators.exists(Q(id=message.from_user.id) and Q(is_active=True)):
+    # admin = await Administrators.exists(Q(id=message.from_user.id)
+    if await Administrators.exists(id=message.from_user.id, is_active=True):
         markup = await inline_admin.menu_keyboard()
     else:
         markup = await inline_student.menu_keyboard()

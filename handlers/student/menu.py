@@ -47,14 +47,14 @@ async def list_func_student(callback: Union[types.Message, types.CallbackQuery],
         case "3":  # Информация о себе
             user = await Users.get(id=callback.from_user.id)
 
-            if user.full_name is not None:
-                message = await messages.make_user_info(user, updated=False)
-                await callback.message.edit_text(message)
-                markup = await inline_student.category_keyboard(category, user_info=user)
-            else:
+            if user.full_name is None or user.full_name == '':
                 message = "Вы еще не заполнили информацию о себе"
                 await callback.message.edit_text(message)
                 markup = await inline_student.category_keyboard(category, empty_info=True)
+            else:
+                message = await messages.make_user_info(user, updated=False)
+                await callback.message.edit_text(message)
+                markup = await inline_student.category_keyboard(category, user_info=user)
 
             await callback.message.edit_reply_markup(markup)
 
@@ -92,6 +92,11 @@ async def sublist_func_student(callback: types.CallbackQuery, category, state: F
 # Уровень 3 - подписка/отписка
 async def sub_to_course(callback: types.CallbackQuery, category, item_id, is_sub, **kwargs):
     user = await Users.get(id=callback.from_user.id)
+
+    if user.full_name is None or user.full_name == '':
+        await list_func_student(callback, category="3")
+        return
+
     course = await Courses.get(id=item_id)
     if int(is_sub) == 0:
         await user.courses.add(course)

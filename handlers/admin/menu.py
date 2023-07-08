@@ -7,7 +7,7 @@ from aiogram.utils.exceptions import MessageCantBeDeleted, MessageNotModified
 from aiogram.dispatcher import FSMContext
 from tortoise.expressions import Q
 
-from DB.models import Courses, Administrators
+from DB.models import Courses, Administrators, Users
 from create_bot import bot, inline_admin, validation
 from handlers.general.menu import list_categories, check_validate
 from static import messages
@@ -21,7 +21,7 @@ class FSMUpdateItem(StatesGroup):
 
 
 # Уровень 1 - курсы по выбранной категории
-async def list_sub_admin_menu(callback: types.CallbackQuery, category, courses, **kwargs):
+async def level_1(callback: types.CallbackQuery, category, courses, **kwargs):
     markup = await inline_admin.category_keyboard(category, courses)
     await callback.message.edit_reply_markup(markup)
 
@@ -37,7 +37,7 @@ async def item_info_admin_menu(callback: Union[types.Message, types.CallbackQuer
         await callback.edit_reply_markup(markup)
 
 
-async def prepare_item_info(call, message, category, item_id):
+async def level_2(call, message, category, item_id):
     await call.edit_text(message)
     await item_info_admin_menu(call, category, item_id)
 
@@ -48,8 +48,23 @@ async def update_item_admin_menu(callback: types.CallbackQuery, category, item_i
     await callback.message.edit_reply_markup(markup)
 
 
+async def level_3(callback: types.CallbackQuery, category, item_id, flag, **kwargs):
+    if int(flag) == 1:
+        users = await Users.filter(courses=item_id).values("id", "full_name", "study_group")
+        answer = ""
+        i = 1
+        for user in users:
+            answer += f'{i}.' + str(user["full_name"]) + ", " + str(user["study_group"]) + ", " + str(user["id"]) + '.\n'
+            i += 1
+        markup = await inline_admin.back_markup(category, item_id)
+        await callback.message.edit_text(answer)
+        await callback.message.edit_reply_markup(markup)
+    else:
+        await update_item_admin_menu(callback, item_id=item_id, category=category)
+
+
 # Уровень 4 - редактирование, машина состояний
-async def update_item(callback: types.CallbackQuery, state: FSMContext, category, item_id, to_change, **kwargs):
+async def level_4(callback: types.CallbackQuery, state: FSMContext, category, item_id, to_change, **kwargs):
     await callback.message.edit_reply_markup(None)
     async with state.proxy() as data:
         # Передаем необходимую информацию
@@ -68,7 +83,7 @@ async def check_cancel_update(call, message, state, category, item_id):
     if message.text.lower() == 'отмена':
         item = await Courses.get(id=item_id)
         try:
-            await prepare_item_info(call.message, messages.make_item_info(item, updated=False), category, item_id)
+            await level_2(call.message, messages.make_item_info(item, updated=False), category, item_id)
             await message.delete()
             await state.finish()
         except MessageCantBeDeleted:
@@ -118,7 +133,7 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
         try:
             await item.save()
             item = await Courses.get(id=item_id)
-            await prepare_item_info(call.message, messages.make_item_info(item, updated=True), category, item_id)
+            await level_2(call.message, messages.make_item_info(item, updated=True), category, item_id)
         except:
             await bot.send_message(message.from_user.id, messages.went_wrong)
         await state.finish()
@@ -132,7 +147,7 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
 # Навигация по меню
 async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     # Проверка админа на случай если отобрали права
-    if not await Administrators.exists(Q(id=call.from_user.id) and Q(is_active=True)):
+    if not await Administrators.exists(id=call.from_user.id, is_active=True):
         await call.message.edit_text("У вас больше нет прав пользоваться этим меню, вызовите новое - /menu")
         return
     # Достаем инфу из колбека
@@ -140,6 +155,8 @@ async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_
     category = callback_data.get('category')
     item_id = callback_data.get('item_id')
     to_change = callback_data.get('to_change')
+    flag = callback_data.get('flag')
+    print(flag)
 
     match current_level:
         case "0":
@@ -149,17 +166,17 @@ async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_
         case "1":
             courses = await Courses.filter(status=int(category))
             await call.message.edit_text("Выберите курс")
-            await list_sub_admin_menu(call, category=category, item_id=item_id, courses=courses)
+            await level_1(call, category=category, item_id=item_id, courses=courses)
 
         case "2":
             item = await Courses.get(id=item_id)
-            await prepare_item_info(call.message, messages.make_item_info(item, updated=False), category, item_id)
+            await level_2(call.message, messages.make_item_info(item, updated=False), category, item_id)
 
         case "3":
-            await update_item_admin_menu(call, item_id=item_id, category=category)
+            await level_3(call, category, item_id, flag=flag)
 
         case "4":
-            await update_item(call, category=category, item_id=item_id, to_change=to_change, state=state)
+            await level_4(call, category=category, item_id=item_id, to_change=to_change, state=state)
 
 
 def register_handlers_menu_admin(_dp: Dispatcher):
