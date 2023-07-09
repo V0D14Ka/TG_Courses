@@ -3,7 +3,7 @@ from typing import Union
 import tortoise
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters.state import StatesGroup, State
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, callback_query
 from aiogram.utils.exceptions import MessageCantBeDeleted, CantInitiateConversation, BotBlocked, Unauthorized, \
     MessageNotModified
 from aiogram.dispatcher import FSMContext
@@ -75,7 +75,6 @@ async def info_edit_markup(callback: Union[types.Message, types.CallbackQuery], 
 
 # Уровень 2
 async def sublist_func_student(callback: types.CallbackQuery, category, state: FSMContext, item_id=0, **kwargs):
-
     if str(category) in "12":
         item = await Courses.get(id=item_id)
         await callback.message.edit_text(messages.make_item_info(item, updated=False))
@@ -101,24 +100,25 @@ async def sub_to_course(callback: types.CallbackQuery, category, item_id, is_sub
     if int(is_sub) == 0:
         await user.courses.add(course)
         await user.save()
+        await callback.answer("Вы успешно записались на курс!", show_alert=True)
     elif int(is_sub) == 1:
         await user.courses.remove(course)
         await user.save()
+        await callback.answer("Вы отменили запись на курс.", show_alert=True)
 
+    await callback.answer("Уведомление", show_alert=True)
     await info_edit_markup(callback, category, item_id)
 
 
 # Обработка отмены, выход из состояния и возврат в меню
 async def check_cancel_update(call: types.CallbackQuery, message: types.Message, state: FSMContext, category):
-    if message.text.lower() == 'отмена':
-        try:
-            await list_func_student(call, category=category)
-            await message.delete()
-            await state.finish()
-        except MessageCantBeDeleted:
-            pass
-        return True
-    return False
+    try:
+        await list_func_student(call, category=category)
+        await message.delete()
+        await state.finish()
+    except MessageCantBeDeleted:
+        pass
+    return True
 
 
 # Далее FSM
@@ -132,12 +132,15 @@ async def fullname_set(message: types.Message, state: FSMContext, **kwargs):
         data["full_name"] = new_value
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
+        # Обработка ошибки валидации
         code = await validation.val_fio(new_value)
 
-        if await check_validate(call, message, code, "'Иванов Иван Иванович'"):
+        if code != 200:
+            await check_validate(call, message, code, "'Иванов Иван Иванович'")
             return
 
         await message.delete()
@@ -155,13 +158,15 @@ async def group_set(message: types.Message, state: FSMContext, **kwargs):
         data["group"] = new_value
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
         # Обработка ошибки валидации
         code = await validation.val_mix(new_value)
 
-        if await check_validate(call, message, code, "'Б9999-11.11.11'"):
+        if code != 200:
+            await check_validate(call, message, code, "'Б9999-11.11.11'")
             return
 
         await message.delete()
@@ -179,13 +184,15 @@ async def phone_set(message: types.Message, state: FSMContext, **kwargs):
         data["phone"] = new_value
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
         # Обработка ошибки валидации
         code = await validation.val_phone(new_value)
 
-        if await check_validate(call, message, code, "'89990001111'"):
+        if code != 200:
+            await check_validate(call, message, code, "'89990001111'")
             return
 
         await message.delete()
@@ -203,13 +210,15 @@ async def birth_set(message: types.Message, state: FSMContext, **kwargs):
         data["birth"] = new_value
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
         # Обработка ошибки валидации
         code = await validation.val_date(new_value)
 
-        if await check_validate(call, message, code, "'YYYY-MM-DD'"):
+        if code != 200:
+            await check_validate(call, message, code, "'YYYY-MM-DD'")
             return
 
         await message.delete()
@@ -225,16 +234,18 @@ async def pdata_set(message: types.Message, state: FSMContext, **kwargs):
         call = data["call"]
         new_value = message.text
         # И кладем новую
-        data["pdata"] = new_value
+        data["pdata"] = int(new_value.replace(' ', ''))
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
         # Обработка ошибки валидации
-        code = await validation.val_pass(new_value)
+        code = await validation.val_pass(new_value.replace(' ', ''))
 
-        if await check_validate(call, message, code, "'1010 123456'"):
+        if code != 200:
+            await check_validate(call, message, code, "'1010 123456'")
             return
 
         await message.delete()
@@ -252,13 +263,15 @@ async def pdate_set(message: types.Message, state: FSMContext, **kwargs):
         data["pdate"] = new_value
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
         # Обработка ошибки валидации
         code = await validation.val_date(new_value)
 
-        if await check_validate(call, message, code, "'YYYY-MM-DD'"):
+        if code != 200:
+            await check_validate(call, message, code, "'YYYY-MM-DD'")
             return
 
         await message.delete()
@@ -276,13 +289,15 @@ async def issued_set(message: types.Message, state: FSMContext, **kwargs):
         data["issued"] = new_value
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
         # Обработка ошибки валидации
         code = await validation.val_text(new_value)
 
-        if await check_validate(call, message, code, "'Отделением ...'"):
+        if code != 200:
+            await check_validate(call, message, code, "'Отделением ...'")
             return
 
         await message.delete()
@@ -300,13 +315,15 @@ async def dcode_set(message: types.Message, state: FSMContext, **kwargs):
         data["dcode"] = new_value.replace('-', '')
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
         # Обработка ошибки валидации
         code = await validation.val_passcode(new_value)
 
-        if await check_validate(call, message, code, "'111-222'"):
+        if code != 200:
+            await check_validate(call, message, code, "'111-222'")
             return
 
         await message.delete()
@@ -322,13 +339,15 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
         call = data["call"]
 
         # Обработка отмены
-        if await check_cancel_update(call, message, state, category):
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
             return
 
         # Обработка ошибки валидации
         code = await validation.val_mix(message.text.replace(' ', ''))
 
-        if await check_validate(call, message, code, "'Владивосток, ул.Ленина 1'"):
+        if code != 200:
+            await check_validate(call, message, code, "'Владивосток, ул.Ленина 1'")
             return
 
         # Забираем инфу о пользователе

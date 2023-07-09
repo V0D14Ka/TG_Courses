@@ -2,14 +2,17 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
 
 
+# Класс отображения клавиатур админа
 class InlineAdmin:
     menu_cd = CallbackData("show_menu", "is_admin", "level", "category", "item_id", "to_change", "flag")
     update_course_cd = CallbackData("sub", "item_id")
 
+    # Создание колбека
     def make_callback_data(self, level, is_admin=1, category=0, item_id=0, to_change=0, flag=0):
         return self.menu_cd.new(is_admin=is_admin, level=level, category=category, item_id=item_id, to_change=to_change,
                                 flag=flag)
 
+    # Уровень 0
     async def menu_keyboard(self):
         current_level = 0
         markup = InlineKeyboardMarkup()
@@ -27,6 +30,7 @@ class InlineAdmin:
         )
         return markup
 
+    # Уровень 1
     async def category_keyboard(self, category, courses):
         current_level = 1
         markup = InlineKeyboardMarkup(row_width=1)
@@ -48,6 +52,7 @@ class InlineAdmin:
 
         return markup
 
+    # Уровень 2
     async def item_info(self, category, item_id):
         current_level = 2
         markup = InlineKeyboardMarkup(row_width=1)
@@ -74,18 +79,7 @@ class InlineAdmin:
 
         return markup
 
-    async def back_markup(self, category, item_id):
-        current_level = 3
-        markup = InlineKeyboardMarkup(row_width=1)
-        markup.row(
-            InlineKeyboardButton(
-                text="Назад",
-                callback_data=self.make_callback_data(level=current_level - 1, item_id=item_id, category=category,
-                                                      )
-            )
-        )
-        return markup
-
+    # Уровень 3 (Редактирование)
     async def update_item_menu(self, category, item_id):
         current_level = 3
         markup = InlineKeyboardMarkup(row_width=1)
@@ -150,6 +144,19 @@ class InlineAdmin:
             InlineKeyboardButton(
                 text="Назад",
                 callback_data=self.make_callback_data(level=current_level - 1, item_id=item_id, category=category)
+            )
+        )
+        return markup
+
+    # Уровень 3 (записавшиеся)
+    async def back_markup(self, category, item_id):
+        current_level = 3
+        markup = InlineKeyboardMarkup(row_width=1)
+        markup.row(
+            InlineKeyboardButton(
+                text="Назад",
+                callback_data=self.make_callback_data(level=current_level - 1, item_id=item_id, category=category,
+                                                      )
             )
         )
         return markup

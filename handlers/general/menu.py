@@ -11,6 +11,7 @@ from create_bot import bot, inline_admin, inline_student
 from static import messages
 
 
+# Выдаем 0-ой уровень меню
 async def show_menu(message: types.Message):
     if not await Administrators.exists(id=message.from_user.id) and not await Users.exists(id=message.from_user.id):
         await bot.send_message(message.from_user.id, "Для начала работы напишите - /start")
@@ -18,8 +19,9 @@ async def show_menu(message: types.Message):
         await list_categories(message)
 
 
+# Корректная выдача меню для админа/студента
 async def list_categories(message: Union[types.CallbackQuery, types.Message], **kwargs):
-    # admin = await Administrators.exists(Q(id=message.from_user.id)
+
     if await Administrators.exists(id=message.from_user.id, is_active=True):
         markup = await inline_admin.menu_keyboard()
     else:
@@ -33,20 +35,19 @@ async def list_categories(message: Union[types.CallbackQuery, types.Message], **
         await message.answer("Выберите пункт", reply_markup=markup)
 
 
+# Универсальная обработка ошибки валидации
 async def check_validate(call: types.CallbackQuery, message: types.Message, code, example):
-    if code != 200:
-        try:
-            await call.message.edit_text(messages.incorrect_input % (code, example))
-        except MessageNotModified:
-            pass
+    try:
+        await call.message.edit_text(messages.incorrect_input % (code, example))
+    except MessageNotModified:
+        pass
 
-        try:
-            await message.delete()
-        except MessageCantBeDeleted:
-            pass
+    try:
+        await message.delete()
+    except MessageCantBeDeleted:
+        pass
 
-        return True
-    return False
+    return True
 
 
 def register_handlers_menu(_dp: Dispatcher):

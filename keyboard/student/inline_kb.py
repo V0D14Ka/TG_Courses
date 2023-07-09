@@ -2,6 +2,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
 
 
+# Класс отображения клавиатур для студента
 class InlineStudent:
     menu_cd = CallbackData("show_menu", "level", "category", "item_id", "sub")
     sub_course_cd = CallbackData("sub", "item_id")
@@ -31,7 +32,7 @@ class InlineStudent:
 
         return markup
 
-    # Рисуем кнопки - курсы
+    # Функция отрисовки кнопок - курсов
     async def print_list_courses(self, markup, courses, category, current_level):
         for course in courses:
             print(course.title)
@@ -50,6 +51,7 @@ class InlineStudent:
 
         if str(category) in "12":  # Отображаем курсы
             await self.print_list_courses(markup, courses, category, current_level)
+
         else:  # Вкладка о себе
             markup.row(
                 InlineKeyboardButton(
