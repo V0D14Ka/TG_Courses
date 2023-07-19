@@ -6,15 +6,18 @@ from tortoise.validators import MaxLengthValidator
 
 class Users(Model):
     id = fields.IntField(pk=True)
-    full_name = fields.CharField(50, null=True)
+    full_name = fields.CharField(60, null=True)
     study_group = fields.CharField(100, null=True)
     phone_number = fields.CharField(11, null=True)
     date_of_birth = fields.DateField(null=True)
-    passport_data = fields.IntField(max_length=17, null=True)
-    passport_date = fields.CharField(11, null=True)
+    # Паспортные данные
+    passport_series = fields.IntField(max_length=4, null=True)
+    passport_number = fields.IntField(max_length=6, null=True)
+    passport_date = fields.DateField(null=True)
     passport_issued = fields.CharField(100, null=True)
+    reg_place = fields.CharField(200, null=True)
     department_code = fields.IntField(max_length=7, null=True)
-    place_of_registration = fields.CharField(100, null=True)
+
     courses = fields.ManyToManyField("models.Courses", related_name='events')
 
     def __str__(self):

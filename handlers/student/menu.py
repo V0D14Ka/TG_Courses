@@ -1,3 +1,4 @@
+import os
 from typing import Union
 
 import tortoise
@@ -13,6 +14,9 @@ from DB.models import Courses, Users, admin_pydantic, student_pydantic
 from create_bot import bot, inline_student, validation
 from handlers.general.menu import list_categories, check_validate
 from static import messages
+from dadata import DadataAsync
+from create_bot import DADATA_TOKEN, DADATA_SECRET
+from tortoise.functions import Count
 
 
 # Состояния редактирования информации о себе
@@ -21,7 +25,8 @@ class FSMUpdateStudentInfo(StatesGroup):
     study_group = State()
     phone_number = State()
     date_of_birth = State()
-    passport_data = State()
+    series_data = State()
+    number_data = State()
     passport_date = State()
     passport_issued = State()
     department_code = State()
@@ -29,12 +34,15 @@ class FSMUpdateStudentInfo(StatesGroup):
 
 
 # Уровень 1
-async def list_func_student(callback: Union[types.Message, types.CallbackQuery], category, **kwargs):
+async def list_func_student(callback: Union[types.Message, types.CallbackQuery], category, offset=0, **kwargs):
     match category:
+
         case "1":  # Открытые курсы
-            courses = await Courses.filter(status=int(category))
+            courses = await Courses.filter(status=int(category)).offset(int(offset)).limit(5)
+            print(Courses.filter(status=int(category)).offset(int(offset)).limit(5).sql())
+            end_list = True if len(courses) < 5 else False
             await callback.message.edit_text("Выберите курс")
-            markup = await inline_student.category_keyboard(category, courses=courses)
+            markup = await inline_student.category_keyboard(category, courses=courses, offset=offset, end_list=end_list)
             await callback.message.edit_reply_markup(markup)
 
         case "2":  # Мои курсы
@@ -60,25 +68,25 @@ async def list_func_student(callback: Union[types.Message, types.CallbackQuery],
 
 
 # Корректная выдача клавиатуры уровня 2
-async def info_edit_markup(callback: Union[types.Message, types.CallbackQuery], category, item_id, **kwargs):
+async def info_edit_markup(callback: Union[types.Message, types.CallbackQuery], category, item_id, offset, **kwargs):
     user = await Users.get(id=callback.from_user.id)
     is_sub = await user.courses.filter(id=item_id).exists()
 
     if isinstance(callback, types.CallbackQuery):
-        markup = await inline_student.item_info(category, item_id, int(is_sub))
+        markup = await inline_student.item_info(category, item_id, int(is_sub), int(offset))
         await callback.message.edit_reply_markup(markup)
 
     if isinstance(callback, types.Message):
-        markup = await inline_student.item_info(category, item_id, int(is_sub))
+        markup = await inline_student.item_info(category, item_id, int(is_sub), int(offset))
         await callback.edit_reply_markup(markup)
 
 
 # Уровень 2
-async def sublist_func_student(callback: types.CallbackQuery, category, state: FSMContext, item_id=0, **kwargs):
+async def sublist_func_student(callback: types.CallbackQuery, category, state: FSMContext, item_id=0, offset=0, **kwargs):
     if str(category) in "12":
         item = await Courses.get(id=item_id)
         await callback.message.edit_text(messages.make_item_info(item, updated=False))
-        await info_edit_markup(callback, category, item_id)
+        await info_edit_markup(callback, category, item_id, offset)
     else:
         await callback.message.edit_text(messages.ask_for_update_user_info % ("1", "ФИО", "'Иванов Иван Иванович'"))
         async with state.proxy() as data:
@@ -89,11 +97,12 @@ async def sublist_func_student(callback: types.CallbackQuery, category, state: F
 
 
 # Уровень 3 - подписка/отписка
-async def sub_to_course(callback: types.CallbackQuery, category, item_id, is_sub, **kwargs):
+async def sub_to_course(callback: types.CallbackQuery, category, item_id, is_sub, offset, **kwargs):
+    print("offset - ", offset)
     user = await Users.get(id=callback.from_user.id)
 
     if user.full_name is None or user.full_name == '':
-        await list_func_student(callback, category="3")
+        await list_func_student(callback, category="3", offset=int(offset))
         return
 
     course = await Courses.get(id=item_id)
@@ -107,7 +116,7 @@ async def sub_to_course(callback: types.CallbackQuery, category, item_id, is_sub
         await callback.answer("Вы отменили запись на курс.", show_alert=True)
 
     await callback.answer("Уведомление", show_alert=True)
-    await info_edit_markup(callback, category, item_id)
+    await info_edit_markup(callback, category, item_id, int(offset))
 
 
 # Обработка отмены, выход из состояния и возврат в меню
@@ -223,18 +232,18 @@ async def birth_set(message: types.Message, state: FSMContext, **kwargs):
 
         await message.delete()
         await call.message.edit_text(
-            messages.ask_for_update_user_info % ("5", "Серия и номер паспорта", "'1010 123456'"))
+            messages.ask_for_update_user_info % ("5", "Серия паспорта", "'1010'"))
         await FSMUpdateStudentInfo.next()
 
 
-async def pdata_set(message: types.Message, state: FSMContext, **kwargs):
+async def series_set(message: types.Message, state: FSMContext, **kwargs):
     async with state.proxy() as data:
         # Забираем необходимую информацию на случай отмены
         category = data["category"]
         call = data["call"]
         new_value = message.text
         # И кладем новую
-        data["pdata"] = int(new_value.replace(' ', ''))
+        data["pseries"] = int(new_value.replace(' ', ''))
 
         # Обработка отмены
         if message.text.lower() == 'отмена':
@@ -242,14 +251,40 @@ async def pdata_set(message: types.Message, state: FSMContext, **kwargs):
             return
 
         # Обработка ошибки валидации
-        code = await validation.val_pass(new_value.replace(' ', ''))
+        code = await validation.val_passSeries(new_value.replace(' ', ''))
 
         if code != 200:
-            await check_validate(call, message, code, "'1010 123456'")
+            await check_validate(call, message, code, "'1010'")
             return
 
         await message.delete()
-        await call.message.edit_text(messages.ask_for_update_user_info % ("6", "Дата выдачи паспорта", "'YYYY-MM-DD'"))
+        await call.message.edit_text(messages.ask_for_update_user_info % ("6", "Номер паспорта", "'541222'"))
+        await FSMUpdateStudentInfo.next()
+
+
+async def number_set(message: types.Message, state: FSMContext, **kwargs):
+    async with state.proxy() as data:
+        # Забираем необходимую информацию на случай отмены
+        category = data["category"]
+        call = data["call"]
+        new_value = message.text
+        # И кладем новую
+        data["pnumber"] = int(new_value.replace(' ', ''))
+
+        # Обработка отмены
+        if message.text.lower() == 'отмена':
+            await check_cancel_update(call, message, state, category)
+            return
+
+        # Обработка ошибки валидации
+        code = await validation.val_passnumber(new_value.replace(' ', ''))
+
+        if code != 200:
+            await check_validate(call, message, code, "'541222'")
+            return
+
+        await message.delete()
+        await call.message.edit_text(messages.ask_for_update_user_info % ("7", "Дата выдачи паспорта", "'YYYY-MM-DD'"))
         await FSMUpdateStudentInfo.next()
 
 
@@ -275,7 +310,7 @@ async def pdate_set(message: types.Message, state: FSMContext, **kwargs):
             return
 
         await message.delete()
-        await call.message.edit_text(messages.ask_for_update_user_info % ("7", "Кем выдан паспорт", "'Отделением ...'"))
+        await call.message.edit_text(messages.ask_for_update_user_info % ("8", "Кем выдан паспорт", "'Отделением ...'"))
         await FSMUpdateStudentInfo.next()
 
 
@@ -301,7 +336,7 @@ async def issued_set(message: types.Message, state: FSMContext, **kwargs):
             return
 
         await message.delete()
-        await call.message.edit_text(messages.ask_for_update_user_info % ("8", "Код паспорта", "'111-222'"))
+        await call.message.edit_text(messages.ask_for_update_user_info % ("9", "Код паспорта", "'111-222'"))
         await FSMUpdateStudentInfo.next()
 
 
@@ -327,8 +362,8 @@ async def dcode_set(message: types.Message, state: FSMContext, **kwargs):
             return
 
         await message.delete()
-        await call.message.edit_text(messages.ask_for_update_user_info % ("9", "Место регистрации", "'Владивосток, "
-                                                                                                    "ул.Ленина 1'"))
+        await call.message.edit_text(messages.ask_for_update_user_info % ("10", "Место регистрации", "'Приморский край, г.Владивосток, "
+                                                                                "ул. Ленина 17, кв 5'"))
         await FSMUpdateStudentInfo.next()
 
 
@@ -344,22 +379,39 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
             return
 
         # Обработка ошибки валидации
-        code = await validation.val_mix(message.text.replace(' ', ''))
+        # code = await validation.val_mix(message.text.replace(' ', ''))
+        async with DadataAsync(DADATA_TOKEN, DADATA_SECRET) as dadata:
+            ans = await dadata.clean(name="address", source=message.text)
+            print(ans["result"])
+            print(ans["qc"])
 
-        if code != 200:
-            await check_validate(call, message, code, "'Владивосток, ул.Ленина 1'")
-            return
+        # if code != 200:
+        #     await check_validate(call, message, code, "'Владивосток, ул.Ленина 1'")
+        #     return
+
+        match ans["qc"]:
+            case 0:
+                pass
+            case 1:
+                await check_validate(call, message, "Неверный адрес", "'Приморский край, г.Владивосток, ул. Ленина 17 "
+                                                                      "кв 5'")
+                return
+            case 3:
+                await check_validate(call, message, "Неверный адрес", "'Приморский край, г.Владивосток, ул. Ленина 17 "
+                                                                      "кв 5'")
+                return
 
         # Забираем инфу о пользователе
         full_name = data["full_name"]
         group = data["group"]
         phone = data["phone"]
         birth = data["birth"]
-        pdata = data["pdata"]
+        series = data["pseries"]
+        number = data["pnumber"]
         pdate = data["pdate"]
         issued = data["issued"]
         dcode = data["dcode"]
-        reg_place = message.text
+        reg_place = ans["result"]
 
         # Сохраняем пользователя
         try:
@@ -368,10 +420,11 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
             user.study_group = group
             user.phone_number = phone
             user.date_of_birth = birth
-            user.passport_data = pdata
+            user.passport_series = series
+            user.passport_number = number
             user.passport_date = pdate
             user.passport_issued = issued
-            user.place_of_registration = reg_place
+            user.reg_place = reg_place
             user.department_code = dcode
             await user.save()
         except NoValuesFetched as e:
@@ -393,26 +446,31 @@ async def student_navigate(call: types.CallbackQuery, state: FSMContext, callbac
     category = callback_data.get('category')
     item_id = callback_data.get('item_id')
     is_sub = callback_data.get('sub')
+    offset = callback_data.get('offset')
 
+    print("moff - ", offset)
     match current_level:
         case "0":
             await call.message.edit_text("Выберите пункт")
             await list_categories(call)
         case "1":
-            await list_func_student(call, category=category, item_id=item_id)
+            await list_func_student(call, category=category, item_id=item_id, offset=offset)
         case "2":
-            await sublist_func_student(call, item_id=item_id, category=category, state=state)
+            await sublist_func_student(call, item_id=item_id, category=category, state=state, offset=offset)
         case "3":
-            await sub_to_course(call, category=category, item_id=item_id, is_sub=is_sub)
+            print("moff - ", offset)
+            await sub_to_course(call, category=category, item_id=item_id, is_sub=is_sub, offset=offset)
 
 
 def register_handlers_menu_student(_dp: Dispatcher):
     _dp.register_callback_query_handler(student_navigate, inline_student.menu_cd.filter(), state=None)
+
     _dp.register_message_handler(fullname_set, state=FSMUpdateStudentInfo.full_name)
     _dp.register_message_handler(group_set, state=FSMUpdateStudentInfo.study_group)
     _dp.register_message_handler(phone_set, state=FSMUpdateStudentInfo.phone_number)
     _dp.register_message_handler(birth_set, state=FSMUpdateStudentInfo.date_of_birth)
-    _dp.register_message_handler(pdata_set, state=FSMUpdateStudentInfo.passport_data)
+    _dp.register_message_handler(series_set, state=FSMUpdateStudentInfo.series_data)
+    _dp.register_message_handler(number_set, state=FSMUpdateStudentInfo.number_data)
     _dp.register_message_handler(pdate_set, state=FSMUpdateStudentInfo.passport_date)
     _dp.register_message_handler(dcode_set, state=FSMUpdateStudentInfo.department_code)
     _dp.register_message_handler(issued_set, state=FSMUpdateStudentInfo.passport_issued)

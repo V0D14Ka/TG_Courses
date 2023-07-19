@@ -46,8 +46,12 @@ class Validation:
         pattern = re.compile("^\d{11}$")  # pattern
         return 200 if re.fullmatch(pattern, string) else "Неверный формат номера"
 
-    async def val_pass(self, string):
-        pattern = re.compile("^\d{4}\d{6}$")  # pattern
+    async def val_passSeries(self, string):
+        pattern = re.compile("^\d{4}$")  # pattern
+        return 200 if re.fullmatch(pattern, string.replace(' ', '')) else "Неверный формат"
+
+    async def val_passnumber(self, string):
+        pattern = re.compile("^\d{6}$")  # pattern
         return 200 if re.fullmatch(pattern, string.replace(' ', '')) else "Неверный формат"
 
     async def val_passcode(self, string):

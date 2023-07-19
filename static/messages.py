@@ -44,7 +44,7 @@ ask_for_update_course = '''
 Введите новое значение: '''
 
 ask_for_update_user_info = '''
-Шаг %s/9.
+Шаг %s/10.
 Введите %s.
 Пример : %s.
 Для отмены напишите "Отмена". 
@@ -62,9 +62,10 @@ def make_item_info(item, updated):  # Сборка информации о ку�
 
 
 async def make_user_info(item: Users, updated):  # Сборка информации о студенте
-    passport = str(item.passport_data) + str(item.passport_date) + str(item.passport_issued) + str(item.department_code)
+    passport = str(item.passport_series) + str(item.passport_number) + "/" + str(item.passport_date) + \
+               "/" + str(item.passport_issued) + "/" + str(item.department_code)
     answer = user_info % (item.full_name, item.study_group, item.phone_number,
-                          item.date_of_birth, passport, item.place_of_registration)
+                          item.date_of_birth, passport, item.reg_place)
     if updated:
         return "Изменение прошло успешно:\n" + answer
     else:
