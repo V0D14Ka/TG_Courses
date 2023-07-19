@@ -4,12 +4,12 @@ from aiogram.utils.callback_data import CallbackData
 
 # Класс отображения клавиатур для студента
 class InlineStudent:
-    menu_cd = CallbackData("show_menu", "level", "category", "item_id", "sub", "offset")
+    menu_cd = CallbackData("student_menu", "level", "category", "item_id", "sub", "offset", "change")
     sub_course_cd = CallbackData("sub", "item_id")
 
     # Создаем колбек дату
-    def make_callback_data(self, level, category=0, item_id=0, is_sub=0, offset=0):
-        return self.menu_cd.new(level=level, category=category, item_id=item_id, sub=is_sub, offset=offset)
+    def make_callback_data(self, level, category=0, item_id=0, is_sub=0, offset=0, change=0):
+        return self.menu_cd.new(level=level, category=category, item_id=item_id, sub=is_sub, offset=offset, change=change)
 
     # Универсальная клавиатура для уровня 0
     async def menu_keyboard(self):
@@ -73,6 +73,7 @@ class InlineStudent:
                     )
 
         else:  # Вкладка о себе
+
             markup.row(
                 InlineKeyboardButton(
                     text="Изменить" if not empty_info else "Заполнить",
@@ -108,4 +109,97 @@ class InlineStudent:
             )
         )
 
+        return markup
+
+    # Уровень 2 (Редактирование)
+    async def update_user_info(self, category, item_id):
+        current_level = 2
+        markup = InlineKeyboardMarkup(row_width=1)
+
+        markup.row(
+            InlineKeyboardButton(
+                text="ФИО",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=1)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Группа",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=2)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Номер телефона",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=3)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Дата рождения",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=4)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Серия паспорта",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=5)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Номер паспорта",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=6)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Дата выдачи паспорта",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=7)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Кем выдан паспорт",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=8)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Место регистрации",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=9)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Код подразделения",
+                callback_data=self.make_callback_data(level=current_level + 1, item_id=item_id, category=category,
+                                                      change=10)
+            )
+        )
+
+        markup.row(
+            InlineKeyboardButton(
+                text="Назад",
+                callback_data=self.make_callback_data(level=current_level - 1, item_id=item_id, category=category)
+            )
+        )
         return markup

@@ -38,7 +38,7 @@ user_info = '''
 Паспорт - %s.
 Регистрация - %s.
 '''
-ask_for_update_course = '''
+ask_for_update = '''
 Для отмены напишите - "Отмена".
 Текущее значение: %s. 
 Введите новое значение: '''
@@ -72,5 +72,5 @@ async def make_user_info(item: Users, updated):  # Сборка информац
         return answer
 
 
-def make_ask_for_update_course(current_val):
-    return ask_for_update_course % current_val
+def make_ask_for_update(current_val):
+    return ask_for_update % current_val

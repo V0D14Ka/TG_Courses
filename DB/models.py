@@ -23,6 +23,56 @@ class Users(Model):
     def __str__(self):
         return self.full_name
 
+    def __getitem__(self, item):
+        match item:
+            case 0:
+                return self.id
+            case 1:
+                return self.full_name
+            case 2:
+                return self.study_group
+            case 3:
+                return self.phone_number
+            case 4:
+                return self.date_of_birth
+            case 5:
+                return self.passport_series
+            case 6:
+                return self.passport_number
+            case 7:
+                return self.passport_date
+            case 8:
+                return self.passport_issued
+            case 9:
+                return self.reg_place
+            case 10:
+                return self.department_code
+
+    def __setitem__(self, item, new_value):
+        match item:
+            case 0:
+                self.id = new_value
+            case 1:
+                self.full_name = new_value
+            case 2:
+                self.study_group = new_value
+            case 3:
+                self.phone_number = new_value
+            case 4:
+                self.date_of_birth = new_value
+            case 5:
+                self.passport_series = new_value
+            case 6:
+                self.passport_number = new_value
+            case 7:
+                self.passport_date = new_value
+            case 8:
+                self.passport_issued = new_value
+            case 9:
+                self.reg_place = new_value
+            case 10:
+                self.department_code = new_value
+
 
 class Administrators(Model):
     id = fields.IntField(pk=True)

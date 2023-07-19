@@ -5,7 +5,6 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import message
 from aiogram.utils.exceptions import MessageCantBeDeleted, MessageNotModified
 from aiogram.dispatcher import FSMContext
-from tortoise.expressions import Q
 
 from DB.models import Courses, Administrators, Users
 from create_bot import bot, inline_admin, validation
@@ -76,7 +75,7 @@ async def level_4(callback: types.CallbackQuery, state: FSMContext, category, it
         data["call"] = callback
 
         item = await Courses.get(id=item_id)
-        await callback.message.edit_text(messages.make_ask_for_update_course(item[int(to_change)]))
+        await callback.message.edit_text(messages.make_ask_for_update(item[int(to_change)]))
         await FSMUpdateItem.new_value.set()
 
 
@@ -153,7 +152,7 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
 
 # Навигация по меню
 async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
-
+    print(callback_data)
     # Проверка админа на случай отзыва права
     if not await Administrators.exists(id=call.from_user.id, is_active=True):
         await call.message.edit_text("У вас больше нет прав пользоваться этим меню, вызовите новое - /menu")
