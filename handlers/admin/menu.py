@@ -5,6 +5,7 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import message
 from aiogram.utils.exceptions import MessageCantBeDeleted, MessageNotModified
 from aiogram.dispatcher import FSMContext
+from aiogram.utils.markdown import hlink
 
 from DB.models import Courses, Administrators, Users
 from create_bot import bot, inline_admin, validation
@@ -47,14 +48,20 @@ async def level_3(callback: types.CallbackQuery, category, item_id, flag, **kwar
     if int(flag) == 1:
         # Выбрано "Записавшиеся"
         users = await Users.filter(courses=item_id).values("id", "full_name", "study_group")
-        answer = ""
-        i = 1
-        for user in users:
-            answer += f'{i}.' + str(user["full_name"]) + ", " + str(user["study_group"]) + ", " + str(
-                user["id"]) + '.\n'
-            i += 1
+
+        if len(users) != 0:
+            ans = ""
+            i = 1
+            for user in users:
+                if i != 1:
+                    ans = callback.message.text
+                await callback.message.edit_text(ans + f'{i}.' + hlink(str(user["full_name"]), f"tg://openmessage?user_id={user['id']}")
+                                                 + ", " + str(user["study_group"]) + '.\n', parse_mode=types.ParseMode.HTML)
+                i += 1
+        else:
+            await callback.message.edit_text("Список пуст :(")
+
         markup = await inline_admin.back_markup(category, item_id)
-        await callback.message.edit_text(answer)
         await callback.message.edit_reply_markup(markup)
 
     else:

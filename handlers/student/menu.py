@@ -87,7 +87,7 @@ async def info_edit_markup(callback: Union[types.Message, types.CallbackQuery], 
 
 # Уровень 2
 async def level_2(callback: types.CallbackQuery, category, state: FSMContext, item_id=0, offset=0,
-                               **kwargs):
+                  **kwargs):
     if str(category) in "12":
         item = await Courses.get(id=item_id)
         await callback.message.edit_text(messages.make_item_info(item, updated=False))
@@ -180,8 +180,6 @@ async def on_update_user(message: types.Message, state: FSMContext, **kwargs):
             await message.delete()
         except MessageCantBeDeleted:
             pass
-
-
 
 
 # Уровень 3 - подписка/отписка
