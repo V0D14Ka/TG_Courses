@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  redis:
+    restart: "no"
+    image: "redis:alpine"
+    hostname: redis
+    container_name: redis
+    ports:
+      - '6379:6379'
+
+  bot:
+    restart: "no"
+    build:
+      dockerfile: Dockerfile
+    command: sh -c "python telegram_bot.py"
+    container_name: bot
+
+    env_file:
+      - ./.env
+
+    links:
+      - redis
+    depends_on:
+      - redis
+      - celery
+
+  celery:
+    restart: "no"
+    build: .
+    command: celery -A tasks.tasks:celery worker -l INFO
+    container_name: celery
+    environment:
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis

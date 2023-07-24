@@ -1,4 +1,3 @@
-from tortoise.contrib.pydantic import pydantic_model_creator
 from tortoise.models import Model
 from tortoise import fields
 from tortoise.validators import MaxLengthValidator
@@ -138,6 +137,3 @@ class Courses(Model):
             case 7:
                 self.status = new_value
 
-
-admin_pydantic = pydantic_model_creator(Administrators, name="admin")
-student_pydantic = pydantic_model_creator(Users, name="user")
