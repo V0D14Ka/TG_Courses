@@ -55,11 +55,10 @@ async def level_3(callback: types.CallbackQuery, category, item_id, flag, **kwar
             ans = ""
             i = 1
             for user in users:
-                if i != 1:
-                    ans = callback.message.text
-                await callback.message.edit_text(ans + f'{i}.' + hlink(str(user["full_name"]), f"tg://openmessage?user_id={user['id']}")
-                                                 + ", " + str(user["study_group"]) + '.\n', parse_mode=types.ParseMode.HTML)
+                ans += (f'{i}.' + hlink(str(user["full_name"]), f"tg://openmessage?user_id={user['id']}")
+                                                 + ", " + str(user["study_group"]) + '.\n')
                 i += 1
+            await callback.message.edit_text(ans, parse_mode=types.ParseMode.HTML)
         else:
             await callback.message.edit_text("Список пуст :(")
 
