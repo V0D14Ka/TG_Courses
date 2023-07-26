@@ -5,12 +5,14 @@ import os
 
 import asyncio
 
+
 from dotenv import load_dotenv
 from tortoise import Tortoise
 
 from DB.models import Users
 from create_bot import bot
 from asgiref.sync import async_to_sync
+from celery.schedules import crontab
 
 
 async def db_init():
@@ -30,9 +32,15 @@ CELERY_RESULT_BACKEND = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
 celery.config_from_object('tasks:tasks', namespace='CELERY')
 
 celery_event_loop = asyncio.new_event_loop()
+# celery.conf.beat_schedule = {
+#     'add-every-30-seconds': {
+#         'task': 'hello',
+#         'schedule': 30,
+#     }
+# }
+# celery.conf.timezone = 'UTC'
 
-
-@celery.task(bind=True)
+@celery.task(bind=True, name="hello")
 def debug_task(self):
     print(f'Request: {self.request!r}')
 
