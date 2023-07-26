@@ -9,7 +9,6 @@ from tortoise.expressions import F, Q
 from DB.models import Administrators, Users
 from create_bot import bot, inline_admin, inline_student
 from static import messages
-from tasks.tasks import print_f
 
 
 # Выдаем 0-ой уровень меню

@@ -19,6 +19,8 @@ services:
     env_file:
       - ./.env
 
+    volumes:
+      - ./:/TG_university
     links:
       - redis
     depends_on:
@@ -35,6 +37,11 @@ services:
     environment:
       - CELERY_BROKER=redis://redis:6379/0
       - CELERY_BACKEND=redis://redis:6379/0
+      - POSTGRES_USER= root
+      - POSTGRES_PASSWORD= root
+      - POSTGRES_DB= bot_db
+    env_file:
+      - ./.env
     depends_on:
       - redis
     ports:
@@ -48,6 +55,9 @@ services:
     environment:
       - CELERY_BROKER=redis://redis:6379/0
       - CELERY_BACKEND=redis://redis:6379/0
+    env_file:
+      - ./.env
+
     depends_on:
       - redis
     ports:

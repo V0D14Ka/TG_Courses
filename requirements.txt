@@ -9,3 +9,4 @@ celery
 redis
 flower
 asyncpg
+asgiref
