@@ -535,7 +535,7 @@ async def student_navigate(call: types.CallbackQuery, state: FSMContext, callbac
     is_sub = callback_data.get('sub')
     offset = callback_data.get('offset')
     change = callback_data.get('change')
-
+    print(await Users.all())
     print("moff - ", offset)
     match current_level:
         case "0":

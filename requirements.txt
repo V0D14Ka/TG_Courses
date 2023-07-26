@@ -7,3 +7,5 @@ tortoise-orm
 dadata~=21.10.1
 celery
 redis
+flower
+asyncpg

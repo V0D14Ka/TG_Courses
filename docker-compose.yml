@@ -24,6 +24,8 @@ services:
     depends_on:
       - redis
       - celery
+      - pg_admin
+      - db
 
   celery:
     restart: "no"
@@ -35,3 +37,39 @@ services:
       - CELERY_BACKEND=redis://redis:6379/0
     depends_on:
       - redis
+    ports:
+      - '5554:5554'
+
+  celery_flower:
+    restart: "no"
+    build: .
+    command: celery -A tasks.tasks:celery flower -l INFO
+    container_name: celery_flower
+    environment:
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+    ports:
+      - '5555:5555'
+
+  db:
+    container_name: pg_db
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: bot_db
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+
+  pg_admin:
+    container_name: pg_admin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: noemail@noemail.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"

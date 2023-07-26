@@ -14,6 +14,8 @@ from static import messages
 
 from tortoise.exceptions import NoValuesFetched
 
+from tasks.tasks import print_f
+
 
 # Класс состояния для редактирования
 class FSMUpdateItem(StatesGroup):
@@ -147,6 +149,10 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
             await item.save()
             item = await Courses.get(id=item_id)
             await level_2(call.message, messages.make_item_info(item, updated=True), category, item_id)
+            users = await Users.filter(courses=item_id)
+            print(users)
+            print_f.delay(users)
+
         except:
             await bot.send_message(message.from_user.id, messages.went_wrong)
         await state.finish()

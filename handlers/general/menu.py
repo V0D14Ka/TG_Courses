@@ -9,6 +9,7 @@ from tortoise.expressions import F, Q
 from DB.models import Administrators, Users
 from create_bot import bot, inline_admin, inline_student
 from static import messages
+from tasks.tasks import print_f
 
 
 # Выдаем 0-ой уровень меню
@@ -21,6 +22,8 @@ async def show_menu(message: types.Message):
 
 # Корректная выдача меню для админа/студента
 async def list_categories(message: Union[types.CallbackQuery, types.Message], **kwargs):
+
+    # print_f.delay()
 
     if await Administrators.exists(id=message.from_user.id, is_active=True):
         markup = await inline_admin.menu_keyboard()
