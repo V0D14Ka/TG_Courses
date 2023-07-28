@@ -1,5 +1,5 @@
 # Information
-from DB.models import Users
+from DB.models import Users, Courses
 
 welcome_mesg = '''Добро пожаловать в наш бот! Используйте /menu'''
 help_mesg = '''Здесь будет инфа о командах бота'''
@@ -52,9 +52,9 @@ ask_for_update_user_info = '''
 '''
 
 
-def make_item_info(item, updated):  # Сборка информации о курсе
-    answer = item_info % (item[1], item[2], item[3],
-                          item[4], item[5], item[6])
+def make_item_info(item: Courses, updated):  # Сборка информации о курсе
+    answer = item_info % (item.title, '\n' + item.schedule.replace(";", "\n"), item.price,
+                          item.audience, item.teacher, item.comment)
     if updated:
         return "Изменение прошло успешно:\n" + answer
     else:

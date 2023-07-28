@@ -1,8 +1,4 @@
 import re
-from aiogram import types
-from aiogram.utils.exceptions import MessageNotModified, MessageCantBeDeleted
-
-from static import messages
 
 
 # Простая самописная валидация
@@ -59,6 +55,12 @@ class Validation:
         return 200 if re.fullmatch(pattern, string) else "Неверный формат кода"
 
     async def val_schedule(self, string):
-        pattern = re.compile("(0[1-9]|[12][0-9]|3[01])[.](0[1-9]|1[012])\s[-]\s(0[1-9]|1[0-9]|2[0-4])[:]([0-5][0-9])"
-                             "[-](0[1-9]|1[0-9]|2[0-4])[:]([0-5][0-9])")  # pattern
-        return 200 if re.fullmatch(pattern, string) else "Неверный формат расписания"
+        pattern = re.compile(
+            "(0[1-9]|[12][0-9]|3[01])[.](0[1-9]|1[012])[.]((19|20)\d\d)\s(0[1-9]|1[0-9]|2[0-4])[:]([0-5][0-9])"
+            "[-](0[1-9]|1[0-9]|2[0-4])[:]([0-5][0-9])")  # pattern
+        str = string.split(";")
+        for i in str:
+            if not re.fullmatch(pattern, i):
+                return "Неверный формат расписания"
+
+        return 200

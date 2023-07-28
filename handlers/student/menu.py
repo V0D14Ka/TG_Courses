@@ -466,25 +466,20 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
             return
 
         # Обработка ошибки валидации
-        # code = await validation.val_mix(message.text.replace(' ', ''))
         async with DadataAsync(DADATA_TOKEN, DADATA_SECRET) as dadata:
             ans = await dadata.clean(name="address", source=message.text)
             print(ans["result"])
             print(ans["qc"])
 
-        # if code != 200:
-        #     await check_validate(call, message, code, "'Владивосток, ул.Ленина 1'")
-        #     return
-
         match ans["qc"]:
             case 0:
                 pass
             case 1:
-                await check_validate(call, message, "Неверный адрес", "'Приморский край, г.Владивосток, ул. Ленина 17 "
+                await check_validate(call, message, "Неверный адрес", "'Приморский край, г.Владивосток, ул. Гоголя 17 "
                                                                       "кв 5'")
                 return
             case 3:
-                await check_validate(call, message, "Неверный адрес", "'Приморский край, г.Владивосток, ул. Ленина 17 "
+                await check_validate(call, message, "Неверный адрес", "'Приморский край, г.Владивосток, ул. Гоголя 17 "
                                                                       "кв 5'")
                 return
 
@@ -523,7 +518,6 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
             pass
 
         await level_1(call, category=category)
-        await FSMUpdateStudentInfo.next()
         await state.finish()
 
 
@@ -535,18 +529,20 @@ async def student_navigate(call: types.CallbackQuery, state: FSMContext, callbac
     is_sub = callback_data.get('sub')
     offset = callback_data.get('offset')
     change = callback_data.get('change')
-    print(await Users.all())
-    print("moff - ", offset)
+
     match current_level:
+
         case "0":
             await call.message.edit_text("Выберите пункт")
             await list_categories(call)
+
         case "1":
             await level_1(call, category=category, item_id=item_id, offset=offset)
+
         case "2":
             await level_2(call, item_id=item_id, category=category, state=state, offset=offset)
+
         case "3":
-            print("moff - ", offset)
             await level_3(call, category=category, item_id=item_id, change=change, state=state, is_sub=is_sub,
                           offset=offset)
 

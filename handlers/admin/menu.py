@@ -1,4 +1,6 @@
 from typing import Union, List
+
+from utils.schedule import sort_strings_by_datetime
 from . import signals
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters.state import StatesGroup, State
@@ -128,7 +130,9 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
             example = "Какой-то текст..."
         elif to_change == "2":
             code = await validation.val_schedule(new_value)
-            example = "21.07 - 10:10-11:40"
+            if code == 200:
+                new_value = await sort_strings_by_datetime(new_value.split(";"))
+            example = '''Расписание в строчку с разделителем ';' "21.07.2023 10:10-11:40;25.07.2023 11:50-13:20..."'''
         else:
             code = await validation.val_bool(new_value)
             example = "1"
@@ -146,7 +150,7 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
         print("new_val", item[int(to_change)])
 
         try:
-            # await Courses.create(status=True)
+        # await Courses.create(status=True, title="test", schedule="10.08.2023 11:50-13:20")
             await item.save()
             item = await Courses.get(id=item_id)
             await level_2(call.message, messages.make_item_info(item, updated=True), category, item_id)

@@ -14,6 +14,8 @@ from create_bot import bot
 from asgiref.sync import async_to_sync
 from celery.schedules import crontab
 
+from utils.schedule import check_time
+
 
 async def db_init():
     await Tortoise.init(
@@ -57,18 +59,24 @@ async def send_mesg(user_id, title):
 
 @shared_task
 def on_update_course_task(item_id, title):
-    status = 0
+    status, task_id = 0, 0
     queue = celery.control.inspect().scheduled()
-    q = list(queue.values())[0]
-    task_id = None
-    for i in q:
+
+    for i in list(queue.values())[0]:
         if i['request']['args'][0] == item_id:
             status = 200
             task_id = i['request']['id']
             break
 
+    # Нашлось задание об оповещении в очереди, ревокаем и создаем новое
     if status == 200:
         celery.control.revoke(task_id=task_id, terminate=True, signal='SIGKILL')
+        course = celery_event_loop.run_until_complete(get_course(item_id))
+        sec = celery_event_loop.run_until_complete(check_time(course))
+
+        if sec != -1:
+            schedule_course_task.apply_async(args=(item_id, title), countdown=sec)
+            # raise Exception(f"Новое уведомление о начале курса {course.title} будет оправлено через {sec}")
 
     users = celery_event_loop.run_until_complete(get_users(item_id))
     for i in users:
@@ -84,7 +92,7 @@ async def get_course(item_id):
 
 
 @shared_task(base=AbortableTask)
-def on_create_course_task(item_id, title):
+def schedule_course_task(item_id, title):
     course = celery_event_loop.run_until_complete(get_course(item_id))
     mesg = f"Завтра - {course.schedule} начинается курс по {course.title} в аудитории {course.audience}!"
     users = celery_event_loop.run_until_complete(get_users(item_id))
