@@ -1,11 +1,12 @@
-from typing import Union
-
+from typing import Union, List
+from . import signals
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import message
 from aiogram.utils.exceptions import MessageCantBeDeleted, MessageNotModified
 from aiogram.dispatcher import FSMContext
 from aiogram.utils.markdown import hlink
+from tortoise.signals import post_save
 
 from DB.models import Courses, Administrators, Users
 from create_bot import bot, inline_admin, validation
@@ -145,10 +146,10 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
         print("new_val", item[int(to_change)])
 
         try:
+            # await Courses.create(status=True)
             await item.save()
             item = await Courses.get(id=item_id)
             await level_2(call.message, messages.make_item_info(item, updated=True), category, item_id)
-            on_update_course_task.delay(item_id, item.title)
 
         except:
             await bot.send_message(message.from_user.id, messages.went_wrong)

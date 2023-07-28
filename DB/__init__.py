@@ -1,1 +1,1 @@
-from DB.sqlite_db import db_init
+from DB.db import db_init

@@ -5,11 +5,11 @@ import os
 
 import asyncio
 
-
+from celery.contrib.abortable import AbortableTask
 from dotenv import load_dotenv
 from tortoise import Tortoise
 
-from DB.models import Users
+from DB.models import Users, Courses
 from create_bot import bot
 from asgiref.sync import async_to_sync
 from celery.schedules import crontab
@@ -32,6 +32,8 @@ CELERY_RESULT_BACKEND = os.environ.get("CELERY_BROKER", "redis://redis:6379/0")
 celery.config_from_object('tasks:tasks', namespace='CELERY')
 
 celery_event_loop = asyncio.new_event_loop()
+
+
 # celery.conf.beat_schedule = {
 #     'add-every-30-seconds': {
 #         'task': 'hello',
@@ -55,6 +57,36 @@ async def send_mesg(user_id, title):
 
 @shared_task
 def on_update_course_task(item_id, title):
+    status = 0
+    queue = celery.control.inspect().scheduled()
+    q = list(queue.values())[0]
+    task_id = None
+    for i in q:
+        if i['request']['args'][0] == item_id:
+            status = 200
+            task_id = i['request']['id']
+            break
+
+    if status == 200:
+        celery.control.revoke(task_id=task_id, terminate=True, signal='SIGKILL')
+
     users = celery_event_loop.run_until_complete(get_users(item_id))
     for i in users:
         celery_event_loop.run_until_complete(send_mesg(i.id, title))
+
+
+async def send_schedule_mesg(item_id, mesg):
+    await bot.send_message(item_id, f"Hi {mesg}")
+
+
+async def get_course(item_id):
+    return await Courses.get(id=item_id)
+
+
+@shared_task(base=AbortableTask)
+def on_create_course_task(item_id, title):
+    course = celery_event_loop.run_until_complete(get_course(item_id))
+    mesg = f"Завтра - {course.schedule} начинается курс по {course.title} в аудитории {course.audience}!"
+    users = celery_event_loop.run_until_complete(get_users(item_id))
+    for i in users:
+        celery_event_loop.run_until_complete(send_schedule_mesg(i.id, mesg))
