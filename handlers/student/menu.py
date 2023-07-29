@@ -10,7 +10,7 @@ from aiogram.utils.exceptions import MessageCantBeDeleted, CantInitiateConversat
 from aiogram.dispatcher import FSMContext
 
 from tortoise.exceptions import NoValuesFetched
-from DB.models import Courses, Users
+from DB.models import Courses, Users, Administrators
 from create_bot import bot, inline_student, validation
 from handlers.general.menu import list_categories, check_validate
 from static import messages
@@ -523,12 +523,17 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
 
 # Навигация
 async def student_navigate(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
-    current_level = callback_data.get('level')
-    category = callback_data.get('category')
-    item_id = callback_data.get('item_id')
-    is_sub = callback_data.get('sub')
-    offset = callback_data.get('offset')
-    change = callback_data.get('change')
+    # Проверка админа на случай наделения пользователя правами
+    if await Administrators.exists(id=call.from_user.id):
+        await call.message.edit_text("Вы стали админом, авторизуйтесь - /start, затем вызовите новое меню")
+        return
+
+    current_level = callback_data.get('level')  # Текущий уровень меню.
+    category = callback_data.get('category')  # Текущая категория.
+    item_id = callback_data.get('item_id')  # Id выбранного курса (необходимо для уровней 2,3,4).
+    is_sub = callback_data.get('sub')  # Флаг показывающий состояние подписки на курс
+    offset = callback_data.get('offset')  # Сдвиг по списку курсов в бд
+    change = callback_data.get('change')  # Номер поля для изменения
 
     match current_level:
 

@@ -53,8 +53,8 @@ ask_for_update_user_info = '''
 
 
 def make_item_info(item: Courses, updated):  # Сборка информации о курсе
-    answer = item_info % (item.title, '\n' + item.schedule.replace(";", "\n"), item.price,
-                          item.audience, item.teacher, item.comment)
+    answer = item_info % (item.title, ('\n' + item.schedule.replace(";", "\n")) if item.schedule is not None else
+                          item.schedule, item.price, item.audience, item.teacher, item.comment)
     if updated:
         return "Изменение прошло успешно:\n" + answer
     else:

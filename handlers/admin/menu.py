@@ -26,29 +26,29 @@ class FSMUpdateItem(StatesGroup):
 
 
 # Уровень 1 - курсы по выбранной категории
-async def level_1(callback: types.CallbackQuery, category, courses, **kwargs):
-    markup = await inline_admin.category_keyboard(category, courses)
+async def level_1(callback: types.CallbackQuery, category, courses, end_list, offset, **kwargs):
+    markup = await inline_admin.category_keyboard(category, courses, offset, end_list)
     await callback.message.edit_reply_markup(markup)
 
 
 # Уровень 2 - информация о выбранном курсе
-async def level_2(call, message, category, item_id):
+async def level_2(call, message, category, item_id, offset):
     await call.edit_text(message)
-    await item_info_admin_menu(call, category, item_id)
+    await item_info_admin_menu(call, category, item_id, offset)
 
 
-async def item_info_admin_menu(callback: Union[types.Message, types.CallbackQuery], category, item_id, **kwargs):
+async def item_info_admin_menu(callback: Union[types.Message, types.CallbackQuery], category, item_id, offset, **kwargs):
     if isinstance(callback, types.CallbackQuery):
-        markup = await inline_admin.item_info(category, item_id)
+        markup = await inline_admin.item_info(category, item_id, offset)
         await callback.message.edit_reply_markup(markup)
 
     if isinstance(callback, types.Message):
-        markup = await inline_admin.item_info(category, item_id)
+        markup = await inline_admin.item_info(category, item_id, offset)
         await callback.edit_reply_markup(markup)
 
 
 # Уровень 3 - выбор поля для редактирования
-async def level_3(callback: types.CallbackQuery, category, item_id, flag, **kwargs):
+async def level_3(callback: types.CallbackQuery, category, item_id, flag, offset, **kwargs):
 
     if int(flag) == 1:
         # Выбрано "Записавшиеся"
@@ -65,17 +65,17 @@ async def level_3(callback: types.CallbackQuery, category, item_id, flag, **kwar
         else:
             await callback.message.edit_text("Список пуст :(")
 
-        markup = await inline_admin.back_markup(category, item_id)
+        markup = await inline_admin.back_markup(category, item_id, offset)
         await callback.message.edit_reply_markup(markup)
 
     else:
         # Меню выбора поля для редактирования
-        markup = await inline_admin.update_item_menu(category, item_id)
+        markup = await inline_admin.update_item_menu(category, item_id, offset)
         await callback.message.edit_reply_markup(markup)
 
 
 # Уровень 4 - редактирование, машина состояний
-async def level_4(callback: types.CallbackQuery, state: FSMContext, category, item_id, to_change, **kwargs):
+async def level_4(callback: types.CallbackQuery, state: FSMContext, category, item_id, to_change, offset, **kwargs):
     await callback.message.edit_reply_markup(None)
 
     async with state.proxy() as data:
@@ -84,6 +84,7 @@ async def level_4(callback: types.CallbackQuery, state: FSMContext, category, it
         data["item_id"] = item_id
         data["category"] = category
         data["call"] = callback
+        data["offset"] = offset
 
         item = await Courses.get(id=item_id)
         await callback.message.edit_text(messages.make_ask_for_update(item[int(to_change)]))
@@ -91,10 +92,10 @@ async def level_4(callback: types.CallbackQuery, state: FSMContext, category, it
 
 
 # Обработка отмены, выход из состояния и возврат в меню
-async def check_cancel_update(call, message, state, category, item_id):
+async def check_cancel_update(call, message, state, category, item_id, offset):
     item = await Courses.get(id=item_id)
     try:
-        await level_2(call.message, messages.make_item_info(item, updated=False), category, item_id)
+        await level_2(call.message, messages.make_item_info(item, updated=False), category, item_id, offset)
         await message.delete()
         await state.finish()
     except MessageCantBeDeleted:
@@ -111,11 +112,12 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
         item_id = data["item_id"]
         category = data["category"]
         call = data["call"]
+        offset = data["offset"]
         new_value = message.text
 
         # Обработка отмены
         if message.text.lower() == 'отмена':
-            await check_cancel_update(call, message, state, category, item_id)
+            await check_cancel_update(call, message, state, category, item_id, offset)
             return
 
         # Валидация
@@ -153,7 +155,7 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
         # await Courses.create(status=True, title="test", schedule="10.08.2023 11:50-13:20")
             await item.save()
             item = await Courses.get(id=item_id)
-            await level_2(call.message, messages.make_item_info(item, updated=True), category, item_id)
+            await level_2(call.message, messages.make_item_info(item, updated=True), category, item_id, offset=offset)
 
         except:
             await bot.send_message(message.from_user.id, messages.went_wrong)
@@ -168,7 +170,7 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
 # Навигация по меню
 async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
     print(callback_data)
-    # Проверка админа на случай отзыва права
+    # Проверка админа на случай отзыва прав
     if not await Administrators.exists(id=call.from_user.id, is_active=True):
         await call.message.edit_text("У вас больше нет прав пользоваться этим меню, вызовите новое - /menu")
         return
@@ -179,6 +181,7 @@ async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_
     item_id = callback_data.get('item_id')  # Id выбранного курса (необходимо для уровней 2,3,4).
     to_change = callback_data.get('to_change')  # Номер поля выбранного курса для изменения (необходимо для уровня 4).
     flag = callback_data.get('flag')  # Флаг показывает какой пункт меню был выбран (необходимо для уровня 3).
+    offset = callback_data.get('offset')  # Сдвиг по списку курсов в бд
 
     # Смотрим какой уровень был вызван
     match current_level:
@@ -188,19 +191,21 @@ async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_
             await list_categories(call)
 
         case "1":
-            courses = await Courses.filter(status=int(category))
+            courses = await Courses.filter(status=int(category)).offset(int(offset)).limit(5)
+            end_list = True if len(courses) < 5 else False
+
             await call.message.edit_text("Выберите курс")
-            await level_1(call, category=category, courses=courses)
+            await level_1(call, category=category, courses=courses, offset=offset, end_list=end_list)
 
         case "2":
             item = await Courses.get(id=item_id)
-            await level_2(call.message, messages.make_item_info(item, updated=False), category, item_id)
+            await level_2(call.message, messages.make_item_info(item, updated=False), category, item_id, offset)
 
         case "3":
-            await level_3(call, category=category, item_id=item_id, flag=flag)
+            await level_3(call, category=category, item_id=item_id, flag=flag, offset=offset)
 
         case "4":
-            await level_4(call, category=category, item_id=item_id, to_change=to_change, state=state)
+            await level_4(call, category=category, item_id=item_id, to_change=to_change, state=state, offset=offset)
 
 
 def register_handlers_menu_admin(_dp: Dispatcher):
