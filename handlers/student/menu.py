@@ -140,29 +140,46 @@ async def on_update_user(message: types.Message, state: FSMContext, **kwargs):
             await check_cancel_update(call, message, state, category)
             return
 
-        # # Валидация
-        # if change in "34":
-        #     code = await validation.val_digit(new_value)
-        #     example = "1100"
-        # elif change == "5":
-        #     code = await validation.val_fio(new_value)
-        #     example = "Иванов Иван Иванович"
-        # elif change in "16":
-        #     code = await validation.val_mix(new_value)
-        #     example = "Какой-то текст..."
-        # elif change == "2":
-        #     code = await validation.val_schedule(new_value)
-        #     example = "21.07 - 10:10-11:40"
-        # else:
-        #     code = await validation.val_bool(new_value)
-        #     example = "1"
-        #     if new_value == '0':
-        #         new_value = False
+        # Валидация
+        if change == "1":
+            code = await validation.val_fio(new_value)
+            example = "Иванов Иван Иванович"
+        elif change == "3":
+            code = await validation.val_phone(new_value)
+            example = "89140003344"
+        elif change in "47":
+            code = await validation.val_date(new_value)
+            example = "YYYY-MM-DD"
+        elif change == "5":
+            code = await validation.val_passSeries(new_value)
+            example = "1017"
+        elif change == "6":
+            code = await validation.val_passnumber(new_value)
+            example = "123456"
+        elif change == "8":
+            code = await validation.val_text(new_value)
+            example = "Отделением ..."
+        elif change == "9":  # Потом сделаю адекватно
+            async with DadataAsync(DADATA_TOKEN, DADATA_SECRET) as dadata:
+                ans = await dadata.clean(name="address", source=new_value)
 
-        # # Проверка полученного кода
-        # if code != 200:
-        #     await check_validate(call, message, code, example)
-        #     return
+            match ans["qc"]:
+                case 0:
+                    code = 200
+                case 1:
+                    code = 400
+                    example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
+                case 3:
+                    code = 400
+                    example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
+        elif change == "10":
+            code = await validation.val_passcode(new_value)
+            example = "111-222"
+
+        # Проверка полученного кода
+        if code != 200:
+            await check_validate(call, message, code, example)
+            return
 
         # Изменение курса, если сюда пришло, значит проблем нет
         user = await Users.get(id=message.from_user.id)
