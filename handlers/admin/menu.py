@@ -15,24 +15,26 @@ from create_bot import bot, inline_admin, validation
 from handlers.general.menu import list_categories, check_validate
 from static import messages
 
-from tortoise.exceptions import NoValuesFetched
 
-from tasks.tasks import on_update_course_task
-
-
-# Класс состояния для редактирования
 class FSMUpdateItem(StatesGroup):
+    """
+        Класс состояния для редактирования курса
+    """
     new_value = State()
 
 
-# Уровень 1 - курсы по выбранной категории
 async def level_1(callback: types.CallbackQuery, category, courses, end_list, offset, **kwargs):
+    """
+        Уровень 1 меню админа - курсы по выбранной категории
+    """
     markup = await inline_admin.category_keyboard(category, courses, offset, end_list)
     await callback.message.edit_reply_markup(markup)
 
 
-# Уровень 2 - информация о выбранном курсе
 async def level_2(call, message, category, item_id, offset):
+    """
+        Уровень 2 меню админа - информация о выбранном курсе
+    """
     await call.edit_text(message)
     await item_info_admin_menu(call, category, item_id, offset)
 
@@ -47,9 +49,10 @@ async def item_info_admin_menu(callback: Union[types.Message, types.CallbackQuer
         await callback.edit_reply_markup(markup)
 
 
-# Уровень 3 - выбор поля для редактирования
 async def level_3(callback: types.CallbackQuery, category, item_id, flag, offset, **kwargs):
-
+    """
+        Уровень 3 меню админа - выбор поля для редактирования
+    """
     if int(flag) == 1:
         # Выбрано "Записавшиеся"
         users = await Users.filter(courses=item_id).values("id", "full_name", "study_group")
@@ -74,8 +77,10 @@ async def level_3(callback: types.CallbackQuery, category, item_id, flag, offset
         await callback.message.edit_reply_markup(markup)
 
 
-# Уровень 4 - редактирование, машина состояний
 async def level_4(callback: types.CallbackQuery, state: FSMContext, category, item_id, to_change, offset, **kwargs):
+    """
+        Уровень 4 меню админа - редактирование курса, машина состояний
+    """
     await callback.message.edit_reply_markup(None)
 
     async with state.proxy() as data:
@@ -91,8 +96,10 @@ async def level_4(callback: types.CallbackQuery, state: FSMContext, category, it
         await FSMUpdateItem.new_value.set()
 
 
-# Обработка отмены, выход из состояния и возврат в меню
 async def check_cancel_update(call, message, state, category, item_id, offset):
+    """
+        Обработка отмены, выход из состояния и возврат в меню
+    """
     item = await Courses.get(id=item_id)
     try:
         await level_2(call.message, messages.make_item_info(item, updated=False), category, item_id, offset)
@@ -103,8 +110,10 @@ async def check_cancel_update(call, message, state, category, item_id, offset):
     return
 
 
-# Уровень 4.1 - обновление курса
 async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
+    """
+        Уровень 4 - обновление курса
+    """
     async with state.proxy() as data:
 
         # Забираем необходимую информацию
@@ -167,9 +176,10 @@ async def on_update_item(message: types.Message, state: FSMContext, **kwargs):
             pass
 
 
-# Навигация по меню
 async def admin_navigate(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
-    print(callback_data)
+    """
+        Навигация по меню админа
+    """
     # Проверка админа на случай отзыва прав
     if not await Administrators.exists(id=call.from_user.id, is_active=True):
         await call.message.edit_text("У вас больше нет прав пользоваться этим меню, вызовите новое - /menu")

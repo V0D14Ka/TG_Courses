@@ -1,6 +1,4 @@
 import os
-import asyncio
-import tortoise
 from aiogram import Bot
 from aiogram.dispatcher import Dispatcher
 from dotenv import load_dotenv

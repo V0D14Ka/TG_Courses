@@ -18,8 +18,10 @@ from dadata import DadataAsync
 from create_bot import DADATA_TOKEN, DADATA_SECRET
 
 
-# Состояния регистрирования информации о студенте
 class FSMUpdateStudentInfo(StatesGroup):
+    """
+       Состояния первоначального регистрирования информации о студенте
+    """
     full_name = State()
     study_group = State()
     phone_number = State()
@@ -32,13 +34,17 @@ class FSMUpdateStudentInfo(StatesGroup):
     place_of_registration = State()
 
 
-# Состояние изменения поля студента
 class FSMUpdateUser(StatesGroup):
+    """
+       Состояние изменения поля с личной информацией студента
+    """
     new_value = State()
 
 
-# Уровень 1
 async def level_1(callback: Union[types.Message, types.CallbackQuery], category, offset=0, **kwargs):
+    """
+       Уровень 1 меню студента
+    """
     match category:
 
         case "1":  # Открытые курсы
@@ -71,8 +77,10 @@ async def level_1(callback: Union[types.Message, types.CallbackQuery], category,
             await callback.message.edit_reply_markup(markup)
 
 
-# Корректная выдача клавиатуры уровня 2
 async def info_edit_markup(callback: Union[types.Message, types.CallbackQuery], category, item_id, offset, **kwargs):
+    """
+       Корректная выдача клавиатуры уровня 2
+    """
     user = await Users.get(id=callback.from_user.id)
     is_sub = await user.courses.filter(id=item_id).exists()
 
@@ -85,9 +93,11 @@ async def info_edit_markup(callback: Union[types.Message, types.CallbackQuery], 
         await callback.edit_reply_markup(markup)
 
 
-# Уровень 2
 async def level_2(callback: types.CallbackQuery, category, state: FSMContext, item_id=0, offset=0,
                   **kwargs):
+    """
+       Уровень 2 меню студента
+    """
     if str(category) in "12":
         item = await Courses.get(id=item_id)
         await callback.message.edit_text(messages.make_item_info(item, updated=False))
@@ -106,10 +116,11 @@ async def level_2(callback: types.CallbackQuery, category, state: FSMContext, it
             await callback.message.edit_reply_markup(markup)
 
 
-# Уровень 3
-
 async def level_3(callback: types.CallbackQuery, category, item_id, is_sub, state: FSMContext, offset, change,
                   **kwargs):
+    """
+       Уровень 3 меню студента
+    """
     if change == "0":
         await sub_to_course(callback, category, item_id, is_sub, offset)
     else:
@@ -127,6 +138,9 @@ async def level_3(callback: types.CallbackQuery, category, item_id, is_sub, stat
 
 
 async def on_update_user(message: types.Message, state: FSMContext, **kwargs):
+    """
+       Обработка введенного значения для изменения информации о пользователе
+    """
     async with state.proxy() as data:
 
         # Забираем необходимую информацию
@@ -166,6 +180,7 @@ async def on_update_user(message: types.Message, state: FSMContext, **kwargs):
             match ans["qc"]:
                 case 0:
                     code = 200
+                    example = "Good"
                 case 1:
                     code = 400
                     example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
@@ -199,9 +214,11 @@ async def on_update_user(message: types.Message, state: FSMContext, **kwargs):
             pass
 
 
-# Уровень 3 - подписка/отписка
 async def sub_to_course(callback: types.CallbackQuery, category, item_id, is_sub, offset, **kwargs):
-    print("offset - ", offset)
+    """
+        Уровень 3 - подписка/отписка
+    """
+
     user = await Users.get(id=callback.from_user.id)
 
     if user.full_name is None or user.full_name == '':
@@ -222,8 +239,10 @@ async def sub_to_course(callback: types.CallbackQuery, category, item_id, is_sub
     await info_edit_markup(callback, category, item_id, int(offset))
 
 
-# Обработка отмены, выход из состояния и возврат в меню
 async def check_cancel_update(call: types.CallbackQuery, message: types.Message, state: FSMContext, category):
+    """
+        Обработка отмены, выход из состояния и возврат в меню
+    """
     try:
         await level_1(call, category=category)
         await message.delete()
@@ -538,8 +557,10 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
         await state.finish()
 
 
-# Навигация
 async def student_navigate(call: types.CallbackQuery, state: FSMContext, callback_data: dict):
+    """
+        Навигация по меню студента
+    """
     # Проверка админа на случай наделения пользователя правами
     if await Administrators.exists(id=call.from_user.id):
         await call.message.edit_text("Вы стали админом, авторизуйтесь - /start, затем вызовите новое меню")

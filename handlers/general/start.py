@@ -9,11 +9,17 @@ from static import messages
 
 
 class FSMAdmin(StatesGroup):
+    """
+        Состояния для авторизации админа
+    """
     password = State()
     message = State()
 
 
 async def commands_start(message: types.Message):
+    """
+        Обработка команд start/help
+    """
     try:
         if await Administrators.exists(id=message.from_user.id):
             admin = await Administrators.get(id=message.from_user.id)
@@ -47,8 +53,10 @@ async def commands_start(message: types.Message):
         await message.reply(messages.unauthorized)
 
 
-# Проверка введенного админом пароля
 async def check_password(message: types.Message, state: FSMContext):
+    """
+       Проверка введенного админом пароля
+    """
 
     res = await Administrators.get(id=message.from_user.id)
     if res.password == message.text:

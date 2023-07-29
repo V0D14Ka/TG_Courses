@@ -2,17 +2,23 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
 
 
-# Класс отображения клавиатур для студента
 class InlineStudent:
+    """
+        Класс отображения клавиатур студента
+    """
     menu_cd = CallbackData("student_menu", "level", "category", "item_id", "sub", "offset", "change")
     sub_course_cd = CallbackData("sub", "item_id")
 
-    # Создаем колбек дату
     def make_callback_data(self, level, category=0, item_id=0, is_sub=0, offset=0, change=0):
+        """
+            Создание callback меню студента
+        """
         return self.menu_cd.new(level=level, category=category, item_id=item_id, sub=is_sub, offset=offset, change=change)
 
-    # Универсальная клавиатура для уровня 0
     async def menu_keyboard(self):
+        """
+            Клавиатура студента уровень 0
+        """
         current_level = 0
         markup = InlineKeyboardMarkup()
 
@@ -32,8 +38,10 @@ class InlineStudent:
 
         return markup
 
-    # Функция отрисовки кнопок - курсов
     async def print_list_courses(self, markup, courses, category, current_level, offset=0):
+        """
+            Функция отрисовки кнопок в клавиатуру - курсов
+        """
         for course in courses:
             print(course.title)
             button_text = f"{course.title}"
@@ -44,9 +52,11 @@ class InlineStudent:
                 InlineKeyboardButton(text=button_text, callback_data=callback_data)
             )
 
-    # Универсальная клавиатура для уровня 1
     async def category_keyboard(self, category=0, courses=None, user_info=None, empty_info=False, offset=0,
                                 end_list=False):
+        """
+            Клавиатура студента уровень 1
+        """
         current_level = 1
         markup = InlineKeyboardMarkup(row_width=1)
 
@@ -62,7 +72,7 @@ class InlineStudent:
                                                                   offset=(int(offset) + 5))
                         )
                     )
-                print("ioff - ", offset)
+
                 if offset != "0":
                     markup.row(  # Кнопка предыдущие
                         InlineKeyboardButton(
@@ -90,11 +100,12 @@ class InlineStudent:
 
         return markup
 
-    # Клавиатура для уровня 2 - выбранный открытый курс
     async def item_info(self, category, item_id, is_sub, offset=0):
+        """
+            Клавиатура студента уровень 2 - выбранный открытый курс
+        """
         current_level = 2
         markup = InlineKeyboardMarkup(row_width=1)
-        print("2-", is_sub)
         markup.row(
             InlineKeyboardButton(
                 text="Отменить запись" if is_sub else "Записаться",
@@ -111,8 +122,10 @@ class InlineStudent:
 
         return markup
 
-    # Уровень 2 (Редактирование)
     async def update_user_info(self, category, item_id):
+        """
+            Клавиатура студента уровень 2 - редактирование личных данных
+        """
         current_level = 2
         markup = InlineKeyboardMarkup(row_width=1)
 

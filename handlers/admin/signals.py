@@ -21,7 +21,6 @@ async def signal_post_save(
         sec = await check_time(instance)
         if sec != -1:
             schedule_course_task.apply_async(args=(instance.id, instance.title), countdown=sec)
-            # raise Exception(f"Уведомление о начале курса {instance.title} будет оправлено через {sec}")
 
     # Иначе курс был обновлен
     else:

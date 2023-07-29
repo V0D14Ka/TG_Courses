@@ -2,19 +2,24 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
 
 
-# Класс отображения клавиатур админа
 class InlineAdmin:
+    """
+        Класс отображения клавиатур админа
+    """
     menu_cd = CallbackData("show_menu", "is_admin", "level", "category", "item_id", "to_change", "flag", "offset")
     update_course_cd = CallbackData("sub", "item_id")
 
-    # Создание колбека
     def make_callback_data(self, level, is_admin=1, category=0, item_id=0, to_change=0, flag=0, offset=0):
+        """
+            Создание callback меню админа
+        """
         return self.menu_cd.new(is_admin=is_admin, level=level, category=category, item_id=item_id, to_change=to_change,
                                 flag=flag, offset=offset)
 
-        # Функция отрисовки кнопок - курсов
-
     async def print_list_courses(self, markup, courses, category, current_level, offset=0):
+        """
+            Функция отрисовки кнопок в клавиатуру - курсов
+        """
         for course in courses:
             print(course.title)
             button_text = f"{course.title}"
@@ -24,8 +29,11 @@ class InlineAdmin:
                 InlineKeyboardButton(text=button_text, callback_data=callback_data)
             )
 
-    # Уровень 0
     async def menu_keyboard(self):
+        """
+            Клавиатура админа уровень 0
+        """
+
         current_level = 0
         markup = InlineKeyboardMarkup()
 
@@ -45,6 +53,9 @@ class InlineAdmin:
     # Уровень 1
     async def category_keyboard(self, category, courses, offset=0,
                                 end_list=False):
+        """
+            Клавиатура админа уровень 1
+        """
         current_level = 1
         markup = InlineKeyboardMarkup(row_width=1)
         await self.print_list_courses(markup, courses, category, current_level, offset)
@@ -76,8 +87,10 @@ class InlineAdmin:
 
         return markup
 
-    # Уровень 2
     async def item_info(self, category, item_id, offset=0):
+        """
+            Клавиатура админа уровень 2
+        """
         current_level = 2
         markup = InlineKeyboardMarkup(row_width=1)
 
@@ -104,8 +117,10 @@ class InlineAdmin:
 
         return markup
 
-    # Уровень 3 (Редактирование)
     async def update_item_menu(self, category, item_id, offset):
+        """
+            Клавиатура админа уровень 3 (Выбор поля для редактирования курса)
+        """
         current_level = 3
         markup = InlineKeyboardMarkup(row_width=1)
 
@@ -174,8 +189,10 @@ class InlineAdmin:
         )
         return markup
 
-    # Уровень 3 (записавшиеся)
     async def back_markup(self, category, item_id, offset):
+        """
+            Клавиатура админа уровень 3 (записавшиеся)
+        """
         current_level = 3
         markup = InlineKeyboardMarkup(row_width=1)
         markup.row(
