@@ -52,7 +52,13 @@ ask_for_update_user_info = '''
 '''
 
 
-def make_item_info(item: Courses, updated):  # Сборка информации о курсе
+def make_item_info(item: Courses, updated):
+    """
+    Сборка информации о курсе.
+    :param item: Courses.
+    :param updated: Флаг - после изменения.
+    :return: строка с сообщением.
+    """
     answer = item_info % (item.title, ('\n' + item.schedule.replace(";", "\n")) if item.schedule is not None else
                           item.schedule, item.price, item.audience, item.teacher, item.comment)
     if updated:
@@ -61,7 +67,13 @@ def make_item_info(item: Courses, updated):  # Сборка информации
         return answer
 
 
-async def make_user_info(item: Users, updated):  # Сборка информации о студенте
+async def make_user_info(item: Users, updated):
+    """
+    Сборка информации о студенте.
+    :param item: Users.
+    :param updated: Флаг - после изменения.
+    :return: Строка с сообщением.
+    """
     passport = str(item.passport_series) + str(item.passport_number) + "/" + str(item.passport_date) + \
                "/" + str(item.passport_issued) + "/" + str(item.department_code)
     answer = user_info % (item.full_name, item.study_group, item.phone_number,
@@ -73,4 +85,9 @@ async def make_user_info(item: Users, updated):  # Сборка информац
 
 
 def make_ask_for_update(current_val):
+    """
+    Построение сообщения с просьбой ввести новое значение.
+    :param current_val: Текущее значение.
+    :return: Строка с сообщением.
+    """
     return ask_for_update % current_val

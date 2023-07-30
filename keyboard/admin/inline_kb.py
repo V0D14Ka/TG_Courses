@@ -1,6 +1,8 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
 
+from utils.keyboard import print_list_courses
+
 
 class InlineAdmin:
     """
@@ -15,19 +17,6 @@ class InlineAdmin:
         """
         return self.menu_cd.new(is_admin=is_admin, level=level, category=category, item_id=item_id, to_change=to_change,
                                 flag=flag, offset=offset)
-
-    async def print_list_courses(self, markup, courses, category, current_level, offset=0):
-        """
-            Функция отрисовки кнопок в клавиатуру - курсов
-        """
-        for course in courses:
-            print(course.title)
-            button_text = f"{course.title}"
-            callback_data = self.make_callback_data(category=category, level=current_level + 1,
-                                                    item_id=course.id, offset=int(offset))
-            markup.insert(
-                InlineKeyboardButton(text=button_text, callback_data=callback_data)
-            )
 
     async def menu_keyboard(self):
         """
@@ -58,7 +47,7 @@ class InlineAdmin:
         """
         current_level = 1
         markup = InlineKeyboardMarkup(row_width=1)
-        await self.print_list_courses(markup, courses, category, current_level, offset)
+        await print_list_courses(self.make_callback_data, markup, courses, category, current_level, offset)
 
         if end_list is False:
             markup.row(  # Кнопка еще

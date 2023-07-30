@@ -1,6 +1,8 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
 
+from utils.keyboard import print_list_courses
+
 
 class InlineStudent:
     """
@@ -13,7 +15,8 @@ class InlineStudent:
         """
             Создание callback меню студента
         """
-        return self.menu_cd.new(level=level, category=category, item_id=item_id, sub=is_sub, offset=offset, change=change)
+        return self.menu_cd.new(level=level, category=category, item_id=item_id, sub=is_sub, offset=offset,
+                                change=change)
 
     async def menu_keyboard(self):
         """
@@ -38,20 +41,6 @@ class InlineStudent:
 
         return markup
 
-    async def print_list_courses(self, markup, courses, category, current_level, offset=0):
-        """
-            Функция отрисовки кнопок в клавиатуру - курсов
-        """
-        for course in courses:
-            print(course.title)
-            button_text = f"{course.title}"
-            callback_data = self.make_callback_data(category=category, level=current_level + 1,
-                                                    item_id=course.id, offset=int(offset))
-
-            markup.insert(
-                InlineKeyboardButton(text=button_text, callback_data=callback_data)
-            )
-
     async def category_keyboard(self, category=0, courses=None, user_info=None, empty_info=False, offset=0,
                                 end_list=False):
         """
@@ -61,7 +50,7 @@ class InlineStudent:
         markup = InlineKeyboardMarkup(row_width=1)
 
         if str(category) in "12":  # Отображаем курсы
-            await self.print_list_courses(markup, courses, category, current_level, offset)
+            await print_list_courses(self.make_callback_data, markup, courses, category, current_level, offset)
 
             if str(category) == "1":
                 if end_list is False:

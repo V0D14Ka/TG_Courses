@@ -3,15 +3,15 @@ import re
 
 class Validation:
     """
-        Валидация на регулярных выражениях
+        Валидация на регулярных выражениях.
     """
     async def val_digit(self, amount):
         """
-            Валидация положительное число
+            Валидация положительное число.
 
-            :param amount - Число
+            :param amount: Число.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         if not str(amount).replace('.', '').isdigit() or str(amount)[0] in "0,.-":
             return "Значение должно быть положительным числом!"
@@ -21,11 +21,11 @@ class Validation:
 
     async def val_text(self, text):
         """
-            Валидация текста
+            Валидация текста.
 
-            :param text - Строка
+            :param text: Строка.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         if text.replace('.', '').isdigit():
             return "Значение не должно быть числом!"
@@ -36,11 +36,11 @@ class Validation:
 
     async def val_bool(self, value):
         """
-            Валидация boolean
+            Валидация boolean.
 
-            :param value - Bool
+            :param value: Bool.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         if int(value) == 1 or int(value) == 0:
             return 200
@@ -48,11 +48,11 @@ class Validation:
 
     async def val_fio(self, text):
         """
-            Валидация ФИО
+            Валидация ФИО.
 
-            :param text - ФИО вида Иванов Иван Иванович
+            :param text: ФИО вида Иванов Иван Иванович.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         if len(text) > 70:
             return "Слишком большой ввод"
@@ -61,22 +61,22 @@ class Validation:
 
     async def val_date(self, string):
         """
-            Валидация даты
+            Валидация даты.
 
-            :param string - дата в формате строки YYYY-MM-DD
+            :param string: Дата в формате строки YYYY-MM-DD.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         pattern = re.compile("(19|20)\d\d[-](0[1-9]|1[012])[-](0[1-9]|[12][0-9]|3[01])")  # pattern
         return 200 if re.fullmatch(pattern, string) else "Неверный формат ввода даты"
 
     async def val_mix(self, string):
         """
-            Валидация смеси текст + числа
+            Валидация смеси текст + числа.
 
-            :param string - строка
+            :param string: Строка.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         if len(string) > 70:
             return "Слишком длинное значение"
@@ -84,55 +84,55 @@ class Validation:
 
     async def val_phone(self, string):
         """
-            Валидация номера телефона
+            Валидация номера телефона.
 
-            :param string - строка с телефоном 89141112233
+            :param string: Строка с телефоном 89141112233.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         pattern = re.compile("^\d{11}$")  # pattern
         return 200 if re.fullmatch(pattern, string) else "Неверный формат номера"
 
     async def val_passSeries(self, string):
         """
-            Валидация серии паспорта
+            Валидация серии паспорта.
 
-            :param string - строка с числом длины 4
+            :param string: Строка с числом длины 4.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         pattern = re.compile("^\d{4}$")  # pattern
         return 200 if re.fullmatch(pattern, string.replace(' ', '')) else "Неверный формат"
 
     async def val_passnumber(self, string):
         """
-            Валидация номера паспорта
+            Валидация номера паспорта.
 
-            :param string - строка с числом длины 6
+            :param string: Строка с числом длины 6.
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         pattern = re.compile("^\d{6}$")  # pattern
         return 200 if re.fullmatch(pattern, string.replace(' ', '')) else "Неверный формат"
 
     async def val_passcode(self, string):
         """
-            Валидация кода подразделения паспорта
+            Валидация кода подразделения паспорта.
 
-            :param string - строка с числом длины 3-3 (111-222)
+            :param string: Строка с числом длины 3-3 (111-222).
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         pattern = re.compile("^\d{3}?[-]\d{3}$")  # pattern
         return 200 if re.fullmatch(pattern, string) else "Неверный формат кода"
 
     async def val_schedule(self, string):
         """
-            Валидация расписания
+            Валидация расписания.
 
-            :param string - строка с расписанием с разделителем ";"
+            :param string: Строка с расписанием с разделителем ";".
 
-            :return 200 если все хорошо, иначе строку с ошибкой
+            :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         pattern = re.compile(
             "(0[1-9]|[12][0-9]|3[01])[.](0[1-9]|1[012])[.]((19|20)\d\d)\s(0[1-9]|1[0-9]|2[0-4])[:]([0-5][0-9])"

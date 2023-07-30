@@ -9,7 +9,7 @@ async def sort_strings_by_datetime(strings):
 
         :param strings: Массив строк расписания
 
-        :return Строка расписания с разделителем ";"
+        :return: Строка расписания с разделителем ";"
     """
     def extract_datetime(string):
         date_str, time_str = string.split(' ')
@@ -29,7 +29,7 @@ def convert_string_to_datetime(date_str):
 
         :param date_str: Дата в формате строки
 
-        :return Datetime
+        :return: Datetime
     """
     datetime_format = "%d.%m.%Y %H:%M"
     return datetime.strptime(date_str, datetime_format)
@@ -39,9 +39,9 @@ async def check_time(instance: Courses):
     """
         Проверка на необходимость создания задания на оповещение за день до начала курса.
 
-        :param instance: Объект Courses
+        :param instance: Объект Courses.
 
-        :return Кол-во секунд до даты начала курса - 24 часа или -1 если осталось меньше дня до начала.
+        :return: Кол-во секунд до даты начала курса - 24 часа или -1 если осталось меньше дня до начала.
     """
     if instance.status is True and instance.schedule is not None:
         schedule = instance.schedule.split(";")[0][0:16]
