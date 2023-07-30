@@ -1,10 +1,13 @@
 import re
 
+from dadata import DadataAsync
+
 
 class Validation:
     """
         Валидация на регулярных выражениях.
     """
+
     async def val_digit(self, amount):
         """
             Валидация положительное число.
@@ -143,3 +146,33 @@ class Validation:
                 return "Неверный формат расписания"
 
         return 200
+
+    async def val_address(self, new_value, DADATA_TOKEN, DADATA_SECRET):
+        """
+        Валидация адреса с помощью сервиса DaData.
+        :param new_value: Строка с адресом.
+        :param DADATA_TOKEN: Токен сервиса.
+        :param DADATA_SECRET: Токен сервиса.
+        :return: Код проверки, пример правильного заполнения, отформатированная строка с адресом.
+        """
+        # Потом добавлю конкретную ошибку во вводе
+        async with DadataAsync(DADATA_TOKEN, DADATA_SECRET) as dadata:
+            ans = await dadata.clean(name="address", source=new_value)
+
+        code, example = 0, ""
+
+        match ans["qc"]:
+            case 0:
+                code = 200
+                example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
+            case 1:
+                code = "Заведомо неверный адрес"
+                example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
+            case 2:
+                code = "В адресе присутствуют лишние части"
+                example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
+            case 3:
+                code = "Существует несколько вариантов данного адреса, уточните"
+                example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
+
+        return code, example, ans["result"]

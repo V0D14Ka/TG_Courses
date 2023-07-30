@@ -11,11 +11,9 @@ from aiogram.dispatcher import FSMContext
 
 from tortoise.exceptions import NoValuesFetched
 from DB.models import Courses, Users, Administrators
-from create_bot import bot, inline_student, validation
+from create_bot import bot, inline_student, validation, DADATA_TOKEN, DADATA_SECRET
 from handlers.general.menu import list_categories, check_validate
 from static import messages
-from dadata import DadataAsync
-from create_bot import DADATA_TOKEN, DADATA_SECRET
 
 
 class FSMUpdateStudentInfo(StatesGroup):
@@ -173,20 +171,9 @@ async def on_update_user(message: types.Message, state: FSMContext, **kwargs):
         elif change == "8":
             code = await validation.val_text(new_value)
             example = "Отделением ..."
-        elif change == "9":  # Потом сделаю адекватно
-            async with DadataAsync(DADATA_TOKEN, DADATA_SECRET) as dadata:
-                ans = await dadata.clean(name="address", source=new_value)
-
-            match ans["qc"]:
-                case 0:
-                    code = 200
-                    example = "Good"
-                case 1:
-                    code = 400
-                    example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
-                case 3:
-                    code = 400
-                    example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
+        elif change == "9":
+            code, example, new_value = await validation.val_address(new_value, DADATA_TOKEN=DADATA_TOKEN,
+                                                                    DADATA_SECRET=DADATA_SECRET)
         elif change == "10":
             code = await validation.val_passcode(new_value)
             example = "111-222"
@@ -199,7 +186,6 @@ async def on_update_user(message: types.Message, state: FSMContext, **kwargs):
         # Изменение курса, если сюда пришло, значит проблем нет
         user = await Users.get(id=message.from_user.id)
         user[int(change)] = new_value
-        print("new_val", user[int(change)])
 
         try:
             await user.save()
@@ -502,22 +488,11 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
             return
 
         # Обработка ошибки валидации
-        async with DadataAsync(DADATA_TOKEN, DADATA_SECRET) as dadata:
-            ans = await dadata.clean(name="address", source=message.text)
-            print(ans["result"])
-            print(ans["qc"])
-
-        match ans["qc"]:
-            case 0:
-                pass
-            case 1:
-                await check_validate(call, message, "Неверный адрес", "'Приморский край, г.Владивосток, ул. Гоголя 17 "
-                                                                      "кв 5'")
-                return
-            case 3:
-                await check_validate(call, message, "Неверный адрес", "'Приморский край, г.Владивосток, ул. Гоголя 17 "
-                                                                      "кв 5'")
-                return
+        code, example, reg_place = await validation.val_address(message.text, DADATA_TOKEN=DADATA_TOKEN,
+                                                                DADATA_SECRET=DADATA_SECRET)
+        if code != 200:
+            await check_validate(call, message, "Неверный адрес", example)
+            return
 
         # Забираем инфу о пользователе
         full_name = data["full_name"]
@@ -529,7 +504,6 @@ async def reg_set(message: types.Message, state: FSMContext, **kwargs):
         pdate = data["pdate"]
         issued = data["issued"]
         dcode = data["dcode"]
-        reg_place = ans["result"]
 
         # Сохраняем пользователя
         try:
