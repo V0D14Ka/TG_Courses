@@ -1,3 +1,4 @@
+import datetime
 import re
 
 from dadata import DadataAsync
@@ -71,7 +72,14 @@ class Validation:
             :return: 200 если все хорошо, иначе строку с ошибкой.
         """
         pattern = re.compile("(19|20)\d\d[-](0[1-9]|1[012])[-](0[1-9]|[12][0-9]|3[01])")  # pattern
-        return 200 if re.fullmatch(pattern, string) else "Неверный формат ввода даты"
+        if re.fullmatch(pattern, string):
+            try:
+                datetime.date.fromisoformat(string)
+            except ValueError:
+                return "В месяце меньше дней"
+            return 200
+        else:
+            "Неверный формат ввода даты"
 
     async def val_mix(self, string):
         """
@@ -176,3 +184,4 @@ class Validation:
                 example = "'Приморский край, г.Владивосток, ул. Гоголя 17 кв 5'"
 
         return code, example, ans["result"]
+
