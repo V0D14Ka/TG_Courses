@@ -157,7 +157,7 @@ async def on_update_user(message: types.Message, state: FSMContext, **kwargs):
             code = await validation.val_fio(new_value)
             example = "Иванов Иван Иванович"
         elif change == "2":
-            code = await validation.val_text(new_value)
+            code = await validation.val_mix(new_value)
             example = "Б0101-01.01.01"
         elif change == "3":
             code = await validation.val_phone(new_value)

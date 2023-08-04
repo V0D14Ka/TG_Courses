@@ -33,7 +33,7 @@ class Validation:
         """
         if text.replace('.', '').isdigit():
             return "Значение не должно быть числом!"
-        if len(text) > 60:
+        if len(text) > 100:
             return "Слишком большой текст"
         pattern = re.compile("^[а-яА-ЯёЁa-zA-Z]+$")  # pattern
         return 200 if re.fullmatch(pattern, text.replace(' ', '')) else "Неверный формат"
@@ -89,7 +89,7 @@ class Validation:
 
             :return: 200 если все хорошо, иначе строку с ошибкой.
         """
-        if len(string) > 70:
+        if len(string) > 100:
             return "Слишком длинное значение"
         return 200
 
