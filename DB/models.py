@@ -4,7 +4,7 @@ from tortoise.validators import MaxLengthValidator
 
 
 class Users(Model):
-    id = fields.IntField(pk=True)
+    id = fields.BigIntField(pk=True)
     full_name = fields.CharField(60, null=True)
     study_group = fields.CharField(100, null=True)
     phone_number = fields.CharField(11, null=True)
